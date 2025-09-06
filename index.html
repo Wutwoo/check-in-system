@@ -210,6 +210,9 @@
 
             const record = { shift, name, type, time: timeString, ip };
 
+            // 請加入這行，這將是診斷的關鍵！
+            console.log('即將傳送的打卡記錄:', record);
+
             try {
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
