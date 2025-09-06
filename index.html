@@ -275,7 +275,7 @@ showMessage('errorMsg','無記錄可匯出',true);
 return;
 }
 
-const headers=['姓名','班別','項目','時間','IP 地址'];
+const headers=['姓名','組別','項目','時間','IP 地址'];
 const csvRows=[headers.join(',')];
 records.forEach(record=>{
 const time=new Date(record.time+' GMT+0800');
