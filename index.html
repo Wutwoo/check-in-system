@@ -213,6 +213,7 @@ const record={shift,name,type,time: timeString,ip};
 try{
 const response=await fetch(DATABASE_URL,{
 method: 'POST',
+mode: 'no-cors',
 headers:{'Content-Type': 'application/json'},
 body: JSON.stringify(record)
 });
