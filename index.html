@@ -207,6 +207,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
+                if (!response.ok && response.status !== 0) { // 檢查非 no-cors 回應
+                    throw new Error(`打卡失敗: HTTP ${response.status}`);
+                }
                 lastCheckInTime = now; // 更新最後打卡時間
                 await loadRecords();
                 showMessage('successMsg', '打卡成功，已儲存到資料庫');
