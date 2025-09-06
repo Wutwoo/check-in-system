@@ -158,8 +158,9 @@
             setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
-        // 防止連續打卡的鎖定機制
-        let isCheckingIn = false;
+        // 防抖機制：限制 5 秒內只能打卡一次
+        let lastCheckInTime = 0;
+        const CHECKIN_COOLDOWN = 5000; // 5 秒冷卻時間
 
         // 載入打卡記錄
         async function loadRecords() {
@@ -190,19 +191,20 @@
 
         // 打卡功能
         async function checkIn(type) {
-            if (isCheckingIn) return; // 防止連續打卡
-            isCheckingIn = true;
+            const now = Date.now();
+            if (now - lastCheckInTime < CHECKIN_COOLDOWN) {
+                showMessage('errorMsg', '請等待 5 秒後再次打卡', true);
+                return;
+            }
 
             const shift = document.getElementById('shift').value;
             const name = document.getElementById('name').value;
             if (!shift || !name) {
                 showMessage('errorMsg', '請選擇班別和姓名', true);
-                isCheckingIn = false;
                 return;
             }
 
-            const now = new Date();
-            const timeString = now.toLocaleString('zh-TW', { 
+            const timeString = new Date().toLocaleString('zh-TW', { 
                 timeZone: 'Asia/Taipei',
                 year: 'numeric', month: '2-digit', day: '2-digit', 
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
@@ -216,13 +218,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
+                lastCheckInTime = now; // 更新最後打卡時間
                 await loadRecords();
                 showMessage('successMsg', '打卡成功，已儲存到資料庫');
             } catch (error) {
                 showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
                 console.error('打卡失敗:', error);
-            } finally {
-                isCheckingIn = false; // 釋放鎖定
             }
         }
 
