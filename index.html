@@ -162,16 +162,25 @@
             setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
-        // 獲取 IP 地址
+        // 獲取 IP 地址（多 API 重試）
         async function getIPAddress() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch (error) {
-                console.error('無法獲取 IP:', error);
-                return 'N/A';
+            const ipAPIs = [
+                'https://api.ipify.org?format=json',
+                'https://ipapi.co/json/',
+                'https://api.myip.com'
+            ];
+            for (const api of ipAPIs) {
+                try {
+                    const response = await fetch(api, { timeout: 5000 });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    return data.ip || data.query || 'N/A';
+                } catch (error) {
+                    console.warn(`IP API ${api} 失敗: ${error.message}`);
+                }
             }
+            showMessage('errorMsg', '無法獲取 IP 地址，請檢查網路連線', true);
+            return 'N/A';
         }
 
         // 打卡功能
@@ -198,6 +207,10 @@
 
             // 獲取 IP 地址
             const ip = await getIPAddress();
+            if (ip === 'N/A') {
+                showMessage('errorMsg', '無法獲取 IP 地址，打卡失敗', true);
+                return;
+            }
 
             const record = { shift, name, type, time: timeString, ip };
 
