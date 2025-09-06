@@ -24,8 +24,8 @@
         #records {
             margin-top: 20px;
             text-align: left;
-            max-height: 400px; /* 固定高度，約 20 條記錄 */
-            overflow-y: auto; /* 啟用垂直滾動 */
+            max-height: 400px;
+            overflow-y: auto;
         }
         table {
             width: 100%;
@@ -39,7 +39,7 @@
         th {
             background-color: #f2f2f2;
             position: sticky;
-            top: 0; /* 標頭固定在頂部 */
+            top: 0;
         }
         #exportBtn {
             background-color: #4CAF50;
@@ -78,7 +78,7 @@
     <div id="successMsg"></div>
     
     <label for="shift">班別：</label>
-    <select id="shift" onchange="updateNames()">
+    <select id="shift" onchange="updateNames()" autocomplete="off">
         <option value="早班">早班</option>
         <option value="晚班">晚班</option>
         <option value="新增">新增</option>
@@ -86,10 +86,10 @@
     </select>
     
     <label for="name">姓名：</label>
-    <select id="name"></select>
+    <select id="name" autocomplete="off"></select>
     
     <label for="type">打卡項目：</label>
-    <select id="type">
+    <select id="type" autocomplete="off">
         <option value="上班">上班</option>
         <option value="下班">下班</option>
         <option value="吃飯">吃飯</option>
@@ -124,7 +124,6 @@
     </div>
 
     <script>
-        // 員工名單
         const employees = {
             早班: ['來財', '南風', '胖子', '大飛', '小柒', '曹操 (組長)'],
             晚班: ['夢子', '安妮亞', '鹿丸', '江海', '馬斯克', '傑諾', '白馬', '柳丁', '杜月笙 (組長)', '五條悟 (組長)'],
@@ -132,7 +131,6 @@
             客服: ['星空', '森鋒']
         };
 
-        // 動態更新姓名下拉選單
         function updateNames() {
             const shift = document.getElementById('shift').value;
             const nameSelect = document.getElementById('name');
@@ -145,7 +143,6 @@
             });
         }
 
-        // 更新當前時間（強制台北時間）
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleString('zh-TW', { 
@@ -156,10 +153,8 @@
             document.getElementById('clock').textContent = `當前時間: ${timeString}`;
         }
 
-        // 資料庫 URL (請替換為您自己的 Apps Script URL)
         const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
 
-        // 顯示訊息
         function showMessage(elementId, message, isError = false) {
             const msgElement = document.getElementById(elementId);
             msgElement.textContent = message;
@@ -168,7 +163,6 @@
             setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
-        // 獲取 IP 地址（多 API 重試）
         async function getIPAddress() {
             const ipAPIs = [
                 'https://api.ipify.org?format=json',
@@ -189,7 +183,6 @@
             return 'N/A';
         }
 
-        // 打卡功能
         async function checkIn() {
             const shift = document.getElementById('shift').value;
             const name = document.getElementById('name').value;
@@ -199,19 +192,16 @@
                 return;
             }
 
-            // 確認提示
             if (!confirm(`確定要為 ${name} 打卡 ${type}？`)) {
                 return;
             }
 
-            // 強制使用台北時間
             const timeString = new Date().toLocaleString('zh-TW', { 
                 timeZone: 'Asia/Taipei',
                 year: 'numeric', month: '2-digit', day: '2-digit', 
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
             });
 
-            // 獲取 IP 地址
             const ip = await getIPAddress();
             if (ip === 'N/A') {
                 showMessage('errorMsg', '無法獲取 IP 地址，打卡失敗', true);
@@ -223,11 +213,10 @@
             try {
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // 保持 no-cors 模式以避免 CORS 錯誤，但請注意這會讓瀏覽器無法讀取伺服器回傳
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
-                // 由於 POST 請求是 no-cors，我們假設它成功，然後直接載入記錄
                 await loadRecords();
                 showMessage('successMsg', '打卡成功，已儲存到資料庫');
             } catch (error) {
@@ -236,28 +225,20 @@
             }
         }
 
-        // 載入打卡記錄（倒序顯示）
         async function loadRecords() {
             try {
-                // 移除 headers 以提高兼容性
                 const response = await fetch(`${DATABASE_URL}?action=get`);
-                
                 if (!response.ok) {
                     throw new Error(`無法載入記錄: HTTP ${response.status}`);
                 }
-                
                 const records = await response.json();
-                
                 if (records.error) {
                     throw new Error(records.error);
                 }
-                
-                // 按時間倒序排序
                 records.sort((a, b) => new Date(b.time) - new Date(a.time));
                 const recordTable = document.getElementById('recordTable');
                 recordTable.innerHTML = '';
                 records.forEach(record => {
-                    // 強制將時間轉為台北時間
                     const time = new Date(record.time);
                     const formattedTime = time.toLocaleString('zh-TW', { 
                         timeZone: 'Asia/Taipei',
@@ -282,7 +263,6 @@
             }
         }
 
-        // 匯出報表為 CSV
         async function exportToCSV() {
             const records = await loadRecords();
             if (records.length === 0) {
@@ -321,16 +301,14 @@
             window.URL.revokeObjectURL(url);
         }
 
-        // 自動刷新（每 30 秒）
         function startAutoRefresh() {
-            setInterval(() => {
+            setInterval(function() {
                 if (document.visibilityState === 'visible') {
                     loadRecords();
                 }
-            }, 30000); // 每 30 秒刷新
+            }, 30000);
         }
 
-        // 初始化
         updateNames();
         setInterval(updateClock, 1000);
         updateClock();
