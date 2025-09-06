@@ -37,6 +37,15 @@
         th {
             background-color: #f2f2f2;
         }
+        #exportBtn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #exportBtn:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -44,18 +53,14 @@
     <div id="clock"></div>
     
     <label for="shift">班別：</label>
-    <select id="shift">
-        <option value="日班">日班</option>
+    <select id="shift" onchange="updateNames()">
+        <option value="早班">早班</option>
         <option value="晚班">晚班</option>
+        <option value="客服">客服</option>
     </select>
     
     <label for="name">姓名：</label>
-    <select id="name">
-        <option value="員工A">員工A</option>
-        <option value="員工B">員工B</option>
-        <option value="員工C">員工C</option>
-        <!-- 可在此添加更多員工姓名 -->
-    </select>
+    <select id="name"></select>
     
     <h2>打卡項目</h2>
     <button onclick="checkIn('上班')">上班</button>
@@ -71,6 +76,7 @@
     
     <div id="records">
         <h2>打卡記錄</h2>
+        <button id="exportBtn" onclick="exportToCSV()">匯出報表 (CSV)</button>
         <table>
             <thead>
                 <tr>
@@ -85,6 +91,26 @@
     </div>
 
     <script>
+        // 員工名單
+        const employees = {
+            早班: ['來財', '南風', '胖子', '大飛', '小柒', '曹操 (組長)'],
+            晚班: ['夢子', '安妮亞', '鹿丸', '江海', '馬斯克', '傑諾', '白馬', '柳丁', '冬瓜', '紅丸', '杜月笙 (組長)', '五條悟 (組長)'],
+            客服: ['星空', '森鋒']
+        };
+
+        // 動態更新姓名下拉選單
+        function updateNames() {
+            const shift = document.getElementById('shift').value;
+            const nameSelect = document.getElementById('name');
+            nameSelect.innerHTML = '';
+            employees[shift].forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                nameSelect.appendChild(option);
+            });
+        }
+
         // 更新當前時間
         function updateClock() {
             const now = new Date();
@@ -96,7 +122,7 @@
         }
 
         // 替換為您的 Google Apps Script 部署 URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/<您的腳本ID>/exec';
 
         // 載入打卡記錄
         async function loadRecords() {
@@ -115,8 +141,10 @@
                     `;
                     recordTable.appendChild(row);
                 });
+                return records;
             } catch (error) {
                 console.error('載入記錄失敗:', error);
+                return [];
             }
         }
 
@@ -135,17 +163,50 @@
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Google Apps Script 需要 no-cors
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
-                loadRecords(); // 重新載入記錄
+                loadRecords();
             } catch (error) {
                 console.error('打卡失敗:', error);
             }
         }
 
+        // 匯出報表為 CSV
+        async function exportToCSV() {
+            const records = await loadRecords();
+            if (records.length === 0) {
+                alert('無記錄可匯出');
+                return;
+            }
+
+            const headers = ['姓名', '班別', '項目', '時間'];
+            const csvRows = [headers.join(',')];
+            records.forEach(record => {
+                const row = [
+                    `"${record.name}"`,
+                    `"${record.shift}"`,
+                    `"${record.type}"`,
+                    `"${record.time}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+            const csvContent = csvRows.join('\n');
+
+            const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `打卡記錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+
         // 初始化
+        updateNames();
         setInterval(updateClock, 1000);
         updateClock();
         loadRecords();
