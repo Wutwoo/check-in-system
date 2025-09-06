@@ -46,15 +46,6 @@
         #exportBtn:hover {
             background-color: #45a049;
         }
-        .deleteBtn {
-            background-color: #ff4444;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .deleteBtn:hover {
-            background-color: #cc0000;
-        }
         #errorMsg {
             color: red;
             margin-top: 10px;
@@ -107,7 +98,6 @@
                     <th>班別</th>
                     <th>項目</th>
                     <th>時間</th>
-                    <th>操作</th>
                 </tr>
             </thead>
             <tbody id="recordTable"></tbody>
@@ -177,7 +167,6 @@
                         <td>${record.shift}</td>
                         <td>${record.type}</td>
                         <td>${record.time}</td>
-                        <td><button class="deleteBtn" onclick="deleteRecord(${record.row})">刪除</button></td>
                     `;
                     recordTable.appendChild(row);
                 });
@@ -224,25 +213,6 @@
             } catch (error) {
                 showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
                 console.error('打卡失敗:', error);
-            }
-        }
-
-        // 刪除記錄
-        async function deleteRecord(row) {
-            if (!confirm(`確定要刪除這筆記錄（行號 ${row}）？`)) return;
-            try {
-                const response = await fetch(`${DATABASE_URL}?action=delete&row=${row}`, { method: 'GET' });
-                if (!response.ok) throw new Error(`刪除失敗: HTTP ${response.status}`);
-                const result = await response.json();
-                if (result.status === 'Success') {
-                    showMessage('successMsg', `記錄（行號 ${row}）已刪除`);
-                    await loadRecords();
-                } else {
-                    throw new Error(result.message);
-                }
-            } catch (error) {
-                showMessage('errorMsg', `刪除記錄失敗: ${error.message}`, true);
-                console.error('刪除記錄失敗:', error);
             }
         }
 
