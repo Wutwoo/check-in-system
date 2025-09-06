@@ -46,11 +46,17 @@
         #exportBtn:hover {
             background-color: #45a049;
         }
+        #errorMsg {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>潤森鑫打卡系統</h1>
     <div id="clock"></div>
+    <div id="errorMsg"></div>
     
     <label for="shift">班別：</label>
     <select id="shift" onchange="updateNames()">
@@ -115,7 +121,7 @@
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleString('zh-TW', { 
-                timeZone: 'Asia/Taipei', // 明確指定台灣時區
+                timeZone: 'Asia/Taipei',
                 year: 'numeric', month: '2-digit', day: '2-digit', 
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
             });
@@ -125,10 +131,19 @@
         // 替換為您的 Google Apps Script 部署 URL
         const SCRIPT_URL = 'https://script.google.com/macros/s/<您的腳本ID>/exec';
 
+        // 顯示錯誤訊息
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+            setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+        }
+
         // 載入打卡記錄
         async function loadRecords() {
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=get`);
+                const response = await fetch(`${SCRIPT_URL}?action=get`, { method: 'GET' });
+                if (!response.ok) throw new Error('無法連接到後端');
                 const records = await response.json();
                 const recordTable = document.getElementById('recordTable');
                 recordTable.innerHTML = '';
@@ -144,6 +159,7 @@
                 });
                 return records;
             } catch (error) {
+                showError(`載入記錄失敗: ${error.message}`);
                 console.error('載入記錄失敗:', error);
                 return [];
             }
@@ -153,9 +169,14 @@
         async function checkIn(type) {
             const shift = document.getElementById('shift').value;
             const name = document.getElementById('name').value;
+            if (!shift || !name) {
+                showError('請選擇班別和姓名');
+                return;
+            }
+
             const now = new Date();
             const timeString = now.toLocaleString('zh-TW', { 
-                timeZone: 'Asia/Taipei', // 明確指定台灣時區
+                timeZone: 'Asia/Taipei',
                 year: 'numeric', month: '2-digit', day: '2-digit', 
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
             });
@@ -163,14 +184,16 @@
             const record = { shift, name, type, time: timeString };
 
             try {
-                await fetch(SCRIPT_URL, {
+                const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
+                    mode: 'no-cors', // Google Apps Script 需要 no-cors
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
+                // 由於 no-cors 無法檢查回應狀態，立即重新載入記錄
                 loadRecords();
             } catch (error) {
+                showError(`打卡失敗: ${error.message}`);
                 console.error('打卡失敗:', error);
             }
         }
@@ -179,7 +202,7 @@
         async function exportToCSV() {
             const records = await loadRecords();
             if (records.length === 0) {
-                alert('無記錄可匯出');
+                showError('無記錄可匯出');
                 return;
             }
 
@@ -200,7 +223,7 @@
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`;
+            link.download = `潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }).replace(/\//g, '-')}.csv`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
