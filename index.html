@@ -46,6 +46,15 @@
         #exportBtn:hover {
             background-color: #45a049;
         }
+        #checkInBtn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #checkInBtn:hover {
+            background-color: #0056b3;
+        }
         #errorMsg {
             color: red;
             margin-top: 10px;
@@ -74,19 +83,23 @@
     <label for="name">姓名：</label>
     <select id="name"></select>
     
-    <h2>打卡項目</h2>
-    <button onclick="checkIn('上班')">上班</button>
-    <button onclick="checkIn('下班')">下班</button>
-    <button onclick="checkIn('吃飯')">吃飯</button>
-    <button onclick="checkIn('結束吃飯')">結束吃飯</button>
-    <button onclick="checkIn('休息')">休息</button>
-    <button onclick="checkIn('結束休息')">結束休息</button>
-    <button onclick="checkIn('廁所')">廁所</button>
-    <button onclick="checkIn('抽菸')">抽菸</button>
-    <button onclick="checkIn('返回座位')">返回座位</button>
-    <button onclick="checkIn('事假')">事假</button>
-    <button onclick="checkIn('病假')">病假</button>
-    <button onclick="checkIn('銷假上班')">銷假上班</button>
+    <label for="type">打卡項目：</label>
+    <select id="type">
+        <option value="上班">上班</option>
+        <option value="下班">下班</option>
+        <option value="吃飯">吃飯</option>
+        <option value="結束吃飯">結束吃飯</option>
+        <option value="休息">休息</option>
+        <option value="結束休息">結束休息</option>
+        <option value="廁所">廁所</option>
+        <option value="抽菸">抽菸</option>
+        <option value="返回座位">返回座位</option>
+        <option value="事假">事假</option>
+        <option value="病假">病假</option>
+        <option value="銷假上班">銷假上班</option>
+    </select>
+    
+    <button id="checkInBtn" onclick="checkIn()">打卡</button>
     
     <div id="records">
         <h2>打卡記錄</h2>
@@ -152,6 +165,53 @@
         let lastCheckInTime = 0;
         const CHECKIN_COOLDOWN = 5000; // 5 秒冷卻時間
 
+        // 打卡功能
+        async function checkIn() {
+            const now = Date.now();
+            if (now - lastCheckInTime < CHECKIN_COOLDOWN) {
+                showMessage('errorMsg', '請等待 5 秒後再次打卡', true);
+                return;
+            }
+
+            const shift = document.getElementById('shift').value;
+            const name = document.getElementById('name').value;
+            const type = document.getElementById('type').value;
+            if (!shift || !name || !type) {
+                showMessage('errorMsg', '請選擇班別、姓名和打卡項目', true);
+                return;
+            }
+
+            // 確認提示
+            if (!confirm(`確定要為 ${name} 打卡 ${type}？`)) {
+                return;
+            }
+
+            const timeString = new Date().toLocaleString('zh-TW', { 
+                timeZone: 'Asia/Taipei',
+                year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+            });
+
+            const record = { shift, name, type, time: timeString };
+
+            try {
+                const response = await fetch(DATABASE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(record)
+                });
+                if (!response.ok && response.status !== 0) {
+                    throw new Error(`打卡失敗: HTTP ${response.status}`);
+                }
+                lastCheckInTime = now; // 更新最後打卡時間
+                await loadRecords();
+                showMessage('successMsg', '打卡成功，已儲存到資料庫');
+            } catch (error) {
+                showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
+                console.error('打卡失敗:', error);
+            }
+        }
+
         // 載入打卡記錄
         async function loadRecords() {
             try {
@@ -175,47 +235,6 @@
                 showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
                 console.error('載入記錄失敗:', error);
                 return [];
-            }
-        }
-
-        // 打卡功能
-        async function checkIn(type) {
-            const now = Date.now();
-            if (now - lastCheckInTime < CHECKIN_COOLDOWN) {
-                showMessage('errorMsg', '請等待 5 秒後再次打卡', true);
-                return;
-            }
-
-            const shift = document.getElementById('shift').value;
-            const name = document.getElementById('name').value;
-            if (!shift || !name) {
-                showMessage('errorMsg', '請選擇班別和姓名', true);
-                return;
-            }
-
-            const timeString = new Date().toLocaleString('zh-TW', { 
-                timeZone: 'Asia/Taipei',
-                year: 'numeric', month: '2-digit', day: '2-digit', 
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-            });
-
-            const record = { shift, name, type, time: timeString };
-
-            try {
-                const response = await fetch(DATABASE_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(record)
-                });
-                if (!response.ok && response.status !== 0) { // 檢查非 no-cors 回應
-                    throw new Error(`打卡失敗: HTTP ${response.status}`);
-                }
-                lastCheckInTime = now; // 更新最後打卡時間
-                await loadRecords();
-                showMessage('successMsg', '打卡成功，已儲存到資料庫');
-            } catch (error) {
-                showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
-                console.error('打卡失敗:', error);
             }
         }
 
