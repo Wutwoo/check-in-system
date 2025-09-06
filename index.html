@@ -195,11 +195,7 @@ if(!confirm(`確定要為 ${name} 打卡 ${type}？`)){
 return;
 }
 
-const timeString=new Date().toLocaleString('zh-TW',{
-timeZone: 'Asia/Taipei',
-year: 'numeric',month: '2-digit',day: '2-digit',
-hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
-});
+const timeString=document.getElementById('clock').textContent.split(': ')[1];
 
 const ip=await getIPAddress();
 if(ip==='N/A'){
@@ -234,11 +230,15 @@ const records=await response.json();
 if(records.error){
 throw new Error(records.error);
 }
-records.sort((a,b)=>new Date(b.time.replace(/\//g,'-')+'Z')-new Date(a.time.replace(/\//g,'-')+'Z'));
+records.sort((a,b)=>{
+const timeA=new Date(a.time+' GMT+0800');
+const timeB=new Date(b.time+' GMT+0800');
+return timeB-timeA;
+});
 const recordTable=document.getElementById('recordTable');
 recordTable.innerHTML='';
 records.forEach(record=>{
-const time=new Date(record.time.replace(/\//g,'-')+'Z');
+const time=new Date(record.time+' GMT+0800');
 const formattedTime=time.toLocaleString('zh-TW',{
 timeZone: 'Asia/Taipei',
 year: 'numeric',month: '2-digit',day: '2-digit',
@@ -272,7 +272,7 @@ return;
 const headers=['姓名','班別','項目','時間','IP 地址'];
 const csvRows=[headers.join(',')];
 records.forEach(record=>{
-const time=new Date(record.time.replace(/\//g,'-')+'Z');
+const time=new Date(record.time+' GMT+0800');
 const formattedTime=time.toLocaleString('zh-TW',{
 timeZone: 'Asia/Taipei',
 year: 'numeric',month: '2-digit',day: '2-digit',
