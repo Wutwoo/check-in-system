@@ -111,6 +111,7 @@
                     <th>班別</th>
                     <th>項目</th>
                     <th>時間</th>
+                    <th>IP 地址</th>
                 </tr>
             </thead>
             <tbody id="recordTable"></tbody>
@@ -161,6 +162,18 @@
             setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
+        // 獲取 IP 地址
+        async function getIPAddress() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('無法獲取 IP:', error);
+                return 'N/A';
+            }
+        }
+
         // 打卡功能
         async function checkIn() {
             const shift = document.getElementById('shift').value;
@@ -183,7 +196,10 @@
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
             });
 
-            const record = { shift, name, type, time: timeString };
+            // 獲取 IP 地址
+            const ip = await getIPAddress();
+
+            const record = { shift, name, type, time: timeString, ip };
 
             try {
                 const response = await fetch(DATABASE_URL, {
@@ -230,6 +246,7 @@
                         <td>${record.shift}</td>
                         <td>${record.type}</td>
                         <td>${formattedTime}</td>
+                        <td>${record.ip || 'N/A'}</td>
                     `;
                     recordTable.appendChild(row);
                 });
@@ -249,7 +266,7 @@
                 return;
             }
 
-            const headers = ['姓名', '班別', '項目', '時間'];
+            const headers = ['姓名', '班別', '項目', '時間', 'IP 地址'];
             const csvRows = [headers.join(',')];
             records.forEach(record => {
                 // 強制將時間轉為台北時間
@@ -263,7 +280,8 @@
                     `"${record.name}"`,
                     `"${record.shift}"`,
                     `"${record.type}"`,
-                    `"${formattedTime}"`
+                    `"${formattedTime}"`,
+                    `"${record.ip || 'N/A'}"`
                 ];
                 csvRows.push(row.join(','));
             });
