@@ -221,6 +221,9 @@
 
             const record = { shift, name, type, time: timeString, ip };
 
+            // 加入這行，檢查傳送的資料內容
+            console.log('即將傳送的打卡記錄:', record);
+
             try {
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
