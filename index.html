@@ -185,10 +185,9 @@
             const record = { shift, name, type, time: timeString };
 
             try {
-                // 嘗試使用 no-cors 模式以繞過 CORS 限制
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // 改回 no-cors 以確保請求發送
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
@@ -207,17 +206,29 @@
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
-                if (!response.ok) throw new Error(`無法載入記錄: HTTP ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`無法載入記錄: HTTP ${response.status}`);
+                }
                 const records = await response.json();
+                if (records.error) {
+                    throw new Error(records.error);
+                }
                 const recordTable = document.getElementById('recordTable');
                 recordTable.innerHTML = '';
                 records.forEach(record => {
+                    // 確保時間顯示為台北時間
+                    const time = new Date(record.time);
+                    const formattedTime = time.toLocaleString('zh-TW', { 
+                        timeZone: 'Asia/Taipei',
+                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+                    });
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${record.name}</td>
                         <td>${record.shift}</td>
                         <td>${record.type}</td>
-                        <td>${record.time}</td>
+                        <td>${formattedTime}</td>
                     `;
                     recordTable.appendChild(row);
                 });
@@ -240,11 +251,18 @@
             const headers = ['姓名', '班別', '項目', '時間'];
             const csvRows = [headers.join(',')];
             records.forEach(record => {
+                // 確保 CSV 時間為台北時間
+                const time = new Date(record.time);
+                const formattedTime = time.toLocaleString('zh-TW', { 
+                    timeZone: 'Asia/Taipei',
+                    year: 'numeric', month: '2-digit', day: '2-digit', 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+                });
                 const row = [
                     `"${record.name}"`,
                     `"${record.shift}"`,
                     `"${record.type}"`,
-                    `"${record.time}"`
+                    `"${formattedTime}"`
                 ];
                 csvRows.push(row.join(','));
             });
