@@ -51,12 +51,18 @@
             margin-top: 10px;
             display: none;
         }
+        #successMsg {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>潤森鑫打卡系統</h1>
     <div id="clock"></div>
     <div id="errorMsg"></div>
+    <div id="successMsg"></div>
     
     <label for="shift">班別：</label>
     <select id="shift" onchange="updateNames()">
@@ -128,22 +134,23 @@
             document.getElementById('clock').textContent = `當前時間: ${timeString}`;
         }
 
-        // 替換為您的 Google Apps Script 部署 URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/<您的腳本ID>/exec';
+        // 資料庫 URL（Google Apps Script）
+        const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
 
-        // 顯示錯誤訊息
-        function showError(message) {
-            const errorMsg = document.getElementById('errorMsg');
-            errorMsg.textContent = message;
-            errorMsg.style.display = 'block';
-            setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+        // 顯示訊息
+        function showMessage(elementId, message, isError = false) {
+            const msgElement = document.getElementById(elementId);
+            msgElement.textContent = message;
+            msgElement.style.display = 'block';
+            msgElement.style.color = isError ? 'red' : 'green';
+            setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
         // 載入打卡記錄
         async function loadRecords() {
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=get`, { method: 'GET' });
-                if (!response.ok) throw new Error('無法連接到後端');
+                const response = await fetch(`${DATABASE_URL}?action=get`, { method: 'GET' });
+                if (!response.ok) throw new Error(`無法載入記錄: ${response.status}`);
                 const records = await response.json();
                 const recordTable = document.getElementById('recordTable');
                 recordTable.innerHTML = '';
@@ -159,7 +166,7 @@
                 });
                 return records;
             } catch (error) {
-                showError(`載入記錄失敗: ${error.message}`);
+                showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
                 console.error('載入記錄失敗:', error);
                 return [];
             }
@@ -170,7 +177,7 @@
             const shift = document.getElementById('shift').value;
             const name = document.getElementById('name').value;
             if (!shift || !name) {
-                showError('請選擇班別和姓名');
+                showMessage('errorMsg', '請選擇班別和姓名', true);
                 return;
             }
 
@@ -183,26 +190,38 @@
 
             const record = { shift, name, type, time: timeString };
 
+            // 提交到資料庫 URL
             try {
-                const response = await fetch(SCRIPT_URL, {
+                const response = await fetch(DATABASE_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Google Apps Script 需要 no-cors
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
-                // 由於 no-cors 無法檢查回應狀態，立即重新載入記錄
-                loadRecords();
+                await loadRecords();
+                showMessage('successMsg', '打卡成功，已儲存到資料庫');
             } catch (error) {
-                showError(`打卡失敗: ${error.message}`);
+                showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
                 console.error('打卡失敗:', error);
             }
+
+            // 本地更新表格（模擬應用程式 URL）
+            const recordTable = document.getElementById('recordTable');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${name}</td>
+                <td>${shift}</td>
+                <td>${type}</td>
+                <td>${timeString}</td>
+            `;
+            recordTable.appendChild(row);
         }
 
         // 匯出報表為 CSV
         async function exportToCSV() {
             const records = await loadRecords();
             if (records.length === 0) {
-                showError('無記錄可匯出');
+                showMessage('errorMsg', '無記錄可匯出', true);
                 return;
             }
 
