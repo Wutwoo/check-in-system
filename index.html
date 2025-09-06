@@ -153,7 +153,7 @@
             document.getElementById('clock').textContent = `當前時間: ${timeString}`;
         }
 
-        const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+        const DATABASE_URL = '請在這裡貼上您最新的 Apps Script 網址';
 
         function showMessage(elementId, message, isError = false) {
             const msgElement = document.getElementById(elementId);
@@ -209,17 +209,17 @@
             }
 
             const record = { shift, name, type, time: timeString, ip };
-
-            // 請加入這行，這將是診斷的關鍵！
-            console.log('即將傳送的打卡記錄:', record);
-
+            
             try {
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
-                    
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
+                // 檢查伺服器回應狀態
+                if (!response.ok) {
+                    throw new Error(`伺服器錯誤: HTTP ${response.status}`);
+                }
                 await loadRecords();
                 showMessage('successMsg', '打卡成功，已儲存到資料庫');
             } catch (error) {
