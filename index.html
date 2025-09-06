@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打卡系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #clock {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        #records {
+            margin-top: 20px;
+            text-align: left;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>打卡系統</h1>
+    <div id="clock"></div>
+    
+    <label for="shift">班別：</label>
+    <select id="shift">
+        <option value="日班">日班</option>
+        <option value="晚班">晚班</option>
+    </select>
+    
+    <label for="name">姓名：</label>
+    <select id="name">
+        <option value="員工A">員工A</option>
+        <option value="員工B">員工B</option>
+        <option value="員工C">員工C</option>
+        <!-- 可在此添加更多員工姓名 -->
+    </select>
+    
+    <h2>打卡項目</h2>
+    <button onclick="checkIn('上班')">上班</button>
+    <button onclick="checkIn('下班')">下班</button>
+    <button onclick="checkIn('吃飯')">吃飯</button>
+    <button onclick="checkIn('結束吃飯')">結束吃飯</button>
+    <button onclick="checkIn('廁所')">廁所</button>
+    <button onclick="checkIn('抽菸')">抽菸</button>
+    <button onclick="checkIn('返回座位')">返回座位</button>
+    <button onclick="checkIn('事假')">事假</button>
+    <button onclick="checkIn('病假')">病假</button>
+    <button onclick="checkIn('銷假上班')">銷假上班</button>
+    
+    <div id="records">
+        <h2>打卡記錄</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>班別</th>
+                    <th>項目</th>
+                    <th>時間</th>
+                </tr>
+            </thead>
+            <tbody id="recordTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // 更新當前時間
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-TW', { 
+                year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+            });
+            document.getElementById('clock').textContent = `當前時間: ${timeString}`;
+        }
+
+        // 替換為您的 Google Apps Script 部署 URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+
+        // 載入打卡記錄
+        async function loadRecords() {
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=get`);
+                const records = await response.json();
+                const recordTable = document.getElementById('recordTable');
+                recordTable.innerHTML = '';
+                records.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${record.name}</td>
+                        <td>${record.shift}</td>
+                        <td>${record.type}</td>
+                        <td>${record.time}</td>
+                    `;
+                    recordTable.appendChild(row);
+                });
+            } catch (error) {
+                console.error('載入記錄失敗:', error);
+            }
+        }
+
+        // 打卡功能
+        async function checkIn(type) {
+            const shift = document.getElementById('shift').value;
+            const name = document.getElementById('name').value;
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-TW', { 
+                year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+            });
+
+            const record = { shift, name, type, time: timeString };
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Google Apps Script 需要 no-cors
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(record)
+                });
+                loadRecords(); // 重新載入記錄
+            } catch (error) {
+                console.error('打卡失敗:', error);
+            }
+        }
+
+        // 初始化
+        setInterval(updateClock, 1000);
+        updateClock();
+        loadRecords();
+    </script>
+</body>
+</html>
