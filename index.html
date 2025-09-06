@@ -167,7 +167,7 @@
         // 獲取 IP 地址（優先 ifconfig.me）
         async function getIPAddress() {
             const ipAPIs = [
-                'https://ifconfig.me/ip', // 優先使用，因您確認有效
+                'https://ifconfig.me/ip', // 優先使用，因確認有效
                 'https://api.ipify.org?format=json',
                 'https://freeipapi.com/api/json'
             ];
@@ -190,11 +190,11 @@
                         ip = data.ip || data.query || data.ipAddress || 'N/A';
                     }
                     console.log(`API ${api} 回應: ${ip}`); // 記錄回應內容
-                    // 驗證 IP（支援 IPv4 和 IPv6）
-                    if (ip && ip !== 'N/A' && ip.match(/^((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|([0-9a-fA-F:]+))$/)) {
-                        return ip;
+                    // 驗證 IP（簡化，確保接受 ifconfig.me 的 IPv4）
+                    if (ip && ip !== 'N/A' && ip.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+                        return ip; // 立即返回有效 IPv4
                     }
-                    console.warn(`API ${api} 回應無效 IP: ${ip}`);
+                    console.warn(`API ${api} 無效 IP: ${ip}（驗證失敗）`);
                 } catch (error) {
                     console.warn(`IP API ${api} 失敗: ${error.message}`);
                 }
