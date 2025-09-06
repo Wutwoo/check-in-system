@@ -161,18 +161,8 @@
             setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
-        // 防抖機制：限制 5 秒內只能打卡一次
-        let lastCheckInTime = 0;
-        const CHECKIN_COOLDOWN = 5000; // 5 秒冷卻時間
-
         // 打卡功能
         async function checkIn() {
-            const now = Date.now();
-            if (now - lastCheckInTime < CHECKIN_COOLDOWN) {
-                showMessage('errorMsg', '請等待 5 秒後再次打卡', true);
-                return;
-            }
-
             const shift = document.getElementById('shift').value;
             const name = document.getElementById('name').value;
             const type = document.getElementById('type').value;
@@ -203,7 +193,6 @@
                 if (!response.ok && response.status !== 0) {
                     throw new Error(`打卡失敗: HTTP ${response.status}`);
                 }
-                lastCheckInTime = now; // 更新最後打卡時間
                 await loadRecords();
                 showMessage('successMsg', '打卡成功，已儲存到資料庫');
             } catch (error) {
