@@ -138,7 +138,7 @@
             });
         }
 
-        // 更新當前時間（台灣時區）
+        // 更新當前時間（強制台北時間）
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleString('zh-TW', { 
@@ -176,6 +176,7 @@
                 return;
             }
 
+            // 強制使用台北時間
             const timeString = new Date().toLocaleString('zh-TW', { 
                 timeZone: 'Asia/Taipei',
                 year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -216,7 +217,7 @@
                 const recordTable = document.getElementById('recordTable');
                 recordTable.innerHTML = '';
                 records.forEach(record => {
-                    // 確保時間顯示為台北時間
+                    // 強制將時間轉為台北時間
                     const time = new Date(record.time);
                     const formattedTime = time.toLocaleString('zh-TW', { 
                         timeZone: 'Asia/Taipei',
@@ -251,7 +252,7 @@
             const headers = ['姓名', '班別', '項目', '時間'];
             const csvRows = [headers.join(',')];
             records.forEach(record => {
-                // 確保 CSV 時間為台北時間
+                // 強制將時間轉為台北時間
                 const time = new Date(record.time);
                 const formattedTime = time.toLocaleString('zh-TW', { 
                     timeZone: 'Asia/Taipei',
