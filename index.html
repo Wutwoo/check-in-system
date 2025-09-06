@@ -317,11 +317,21 @@
             window.URL.revokeObjectURL(url);
         }
 
+        // 自動刷新（每 30 秒）
+        function startAutoRefresh() {
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    loadRecords();
+                }
+            }, 30000); // 每 30 秒刷新
+        }
+
         // 初始化
         updateNames();
         setInterval(updateClock, 1000);
         updateClock();
         loadRecords();
+        startAutoRefresh();
     </script>
 </body>
 </html>
