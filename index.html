@@ -76,8 +76,8 @@ display: none;
 <div id="errorMsg"></div>
 <div id="successMsg"></div>
 
-<label for="shift">組別：</label>
-<select id="shift" onchange="updateNames()" autocomplete="off">
+<label for="group">組別：</label>
+<select id="group" onchange="updateNames()" autocomplete="off">
 <option value="天狼組">天狼組</option>
 <option value="洋天組">洋天組</option>
 <option value="策天組">策天組</option>
@@ -113,7 +113,7 @@ display: none;
 <thead>
 <tr>
 <th>姓名</th>
-<th>班別</th>
+<th>組別</th>
 <th>項目</th>
 <th>時間</th>
 <th>IP 地址</th>
@@ -133,10 +133,10 @@ const employees={
 };
 
 function updateNames(){
-const shift=document.getElementById('shift').value;
+const group=document.getElementById('group').value;
 const nameSelect=document.getElementById('name');
 nameSelect.innerHTML='';
-employees[shift].forEach(name=>{
+employees[group].forEach(name=>{
 const option=document.createElement('option');
 option.value=name;
 option.textContent=name;
@@ -185,10 +185,10 @@ return'N/A';
 }
 
 async function checkIn(){
-const shift=document.getElementById('shift').value;
+const group=document.getElementById('group').value;
 const name=document.getElementById('name').value;
 const type=document.getElementById('type').value;
-if(!shift||!name||!type){
+if(!group||!name||!type){
 showMessage('errorMsg','請選擇組別、姓名和打卡項目',true);
 return;
 }
@@ -197,11 +197,7 @@ if(!confirm(`確定要為 ${name} 打卡 ${type}？`)){
 return;
 }
 
-const timeString=new Date().toLocaleString('zh-TW',{
-timeZone: 'Asia/Taipei',
-year: 'numeric',month: '2-digit',day: '2-digit',
-hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
-});
+const timeString=document.getElementById('clock').textContent.split(': ')[1];
 
 const ip=await getIPAddress();
 if(ip==='N/A'){
@@ -209,7 +205,7 @@ showMessage('errorMsg','無法獲取 IP 地址，打卡失敗',true);
 return;
 }
 
-const record={shift,name,type,time: timeString,ip};
+const record={shift: group,name,type,time: timeString,ip};
 
 try{
 const response=await fetch(DATABASE_URL,{
