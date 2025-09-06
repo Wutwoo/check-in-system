@@ -190,7 +190,7 @@
                         ip = data.ip || data.query || data.ipAddress || 'N/A';
                     }
                     console.log(`API ${api} 回應: ${ip}`); // 記錄回應內容
-                    // 驗證 IP（簡化，確保接受 ifconfig.me 的 IPv4）
+                    // 驗證 IP（僅限 IPv4，因確認回應為 IPv4）
                     if (ip && ip !== 'N/A' && ip.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
                         return ip; // 立即返回有效 IPv4
                     }
@@ -232,15 +232,17 @@
                 return;
             }
 
-            const record = { shift, name, type, time: timeString, ip };
+            // 確保欄位名稱與 Google Sheets 標頭一致
+            const record = { Shift: shift, Name: name, Type: type, Time: timeString, IP: ip };
+            console.log('傳送資料到 Google Sheets:', JSON.stringify(record)); // 記錄傳送資料
 
             try {
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
                 });
+                console.log('POST 請求狀態:', response.status); // 記錄請求狀態
                 await loadRecords();
                 showMessage('successMsg', `打卡成功，已儲存到資料庫（IP: ${ip}）`);
             } catch (error) {
@@ -256,17 +258,19 @@
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
+                console.log('GET 請求狀態:', response.status); // 記錄請求狀態
                 if (!response.ok) {
                     throw new Error(`無法載入記錄: HTTP ${response.status}`);
                 }
                 const records = await response.json();
+                console.log('從 Google Sheets 接收的記錄:', records); // 記錄接收資料
                 if (records.error) {
                     throw new Error(records.error);
                 }
                 const recordTable = document.getElementById('recordTable');
                 recordTable.innerHTML = '';
                 records.forEach(record => {
-                    const time = new Date(record.time);
+                    const time = new Date(record.Time || record.time);
                     const formattedTime = time.toLocaleString('zh-TW', { 
                         timeZone: 'Asia/Taipei',
                         year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -274,11 +278,11 @@
                     });
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${record.name}</td>
-                        <td>${record.shift}</td>
-                        <td>${record.type}</td>
+                        <td>${record.Name || record.name || 'N/A'}</td>
+                        <td>${record.Shift || record.shift || 'N/A'}</td>
+                        <td>${record.Type || record.type || 'N/A'}</td>
                         <td>${formattedTime}</td>
-                        <td>${record.ip || 'N/A'}</td>
+                        <td>${record.IP || record.ip || 'N/A'}</td>
                     `;
                     recordTable.appendChild(row);
                 });
@@ -301,18 +305,18 @@
             const headers = ['姓名', '班別', '項目', '時間', 'IP 地址'];
             const csvRows = [headers.join(',')];
             records.forEach(record => {
-                const time = new Date(record.time);
+                const time = new Date(record.Time || record.time);
                 const formattedTime = time.toLocaleString('zh-TW', { 
                     timeZone: 'Asia/Taipei',
                     year: 'numeric', month: '2-digit', day: '2-digit', 
                     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
                 });
                 const row = [
-                    `"${record.name}"`,
-                    `"${record.shift}"`,
-                    `"${record.type}"`,
+                    `"${record.Name || record.name || 'N/A'}"`,
+                    `"${record.Shift || record.shift || 'N/A'}"`,
+                    `"${record.Type || record.type || 'N/A'}"`,
                     `"${formattedTime}"`,
-                    `"${record.ip || 'N/A'}"`
+                    `"${record.IP || record.ip || 'N/A'}"`
                 ];
                 csvRows.push(row.join(','));
             });
