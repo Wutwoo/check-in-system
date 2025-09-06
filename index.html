@@ -1,322 +1,321 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>潤森鑫打卡系統</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-        #clock {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        select, button {
-            padding: 10px;
-            font-size: 16px;
-            margin: 10px;
-        }
-        #records {
-            margin-top: 20px;
-            text-align: left;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        th {
-            background-color: #f2f2f2;
-            position: sticky;
-            top: 0;
-        }
-        #exportBtn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        #exportBtn:hover {
-            background-color: #45a049;
-        }
-        #checkInBtn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        #checkInBtn:hover {
-            background-color: #0056b3;
-        }
-        #errorMsg {
-            color: red;
-            margin-top: 10px;
-            display: none;
-        }
-        #successMsg {
-            color: green;
-            margin-top: 10px;
-            display: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>潤森鑫打卡系統</title>
+<style>
+body{
+font-family: Arial, sans-serif;
+max-width: 800px;
+margin: 0 auto;
+padding: 20px;
+text-align: center;
+}
+#clock{
+font-size: 24px;
+margin-bottom: 20px;
+}
+select,button{
+padding: 10px;
+font-size: 16px;
+margin: 10px;
+}
+#records{
+margin-top: 20px;
+text-align: left;
+max-height: 400px;
+overflow-y: auto;
+}
+table{
+width: 100%;
+border-collapse: collapse;
+}
+th,td{
+border: 1px solid #ddd;
+padding: 8px;
+text-align: center;
+}
+th{
+background-color: #f2f2f2;
+position: sticky;
+top: 0;
+}
+#exportBtn{
+background-color: #4CAF50;
+color: white;
+border: none;
+cursor: pointer;
+}
+#exportBtn:hover{
+background-color: #45a049;
+}
+#checkInBtn{
+background-color: #007bff;
+color: white;
+border: none;
+cursor: pointer;
+}
+#checkInBtn:hover{
+background-color: #0056b3;
+}
+#errorMsg{
+color: red;
+margin-top: 10px;
+display: none;
+}
+#successMsg{
+color: green;
+margin-top: 10px;
+display: none;
+}
+</style>
 </head>
 <body>
-    <h1>潤森鑫打卡系統</h1>
-    <div id="clock"></div>
-    <div id="errorMsg"></div>
-    <div id="successMsg"></div>
-    
-    <label for="shift">班別：</label>
-    <select id="shift" onchange="updateNames()" autocomplete="off">
-        <option value="早班">早班</option>
-        <option value="晚班">晚班</option>
-        <option value="新增">新增</option>
-        <option value="客服">客服</option>
-    </select>
-    
-    <label for="name">姓名：</label>
-    <select id="name" autocomplete="off"></select>
-    
-    <label for="type">打卡項目：</label>
-    <select id="type" autocomplete="off">
-        <option value="上班">上班</option>
-        <option value="下班">下班</option>
-        <option value="吃飯">吃飯</option>
-        <option value="結束吃飯">結束吃飯</option>
-        <option value="休息">休息</option>
-        <option value="結束休息">結束休息</option>
-        <option value="廁所">廁所</option>
-        <option value="抽菸">抽菸</option>
-        <option value="返回座位">返回座位</option>
-        <option value="事假">事假</option>
-        <option value="病假">病假</option>
-        <option value="銷假上班">銷假上班</option>
-    </select>
-    
-    <button id="checkInBtn" onclick="checkIn()">打卡</button>
-    
-    <div id="records">
-        <h2>打卡記錄</h2>
-        <button id="exportBtn" onclick="exportToCSV()">匯出報表 (CSV)</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>姓名</th>
-                    <th>班別</th>
-                    <th>項目</th>
-                    <th>時間</th>
-                    <th>IP 地址</th>
-                </tr>
-            </thead>
-            <tbody id="recordTable"></tbody>
-        </table>
-    </div>
+<h1>潤森鑫打卡系統</h1>
+<div id="clock"></div>
+<div id="errorMsg"></div>
+<div id="successMsg"></div>
 
-    <script>
-        const employees = {
-            早班: ['來財', '南風', '胖子', '大飛', '小柒', '曹操 (組長)'],
-            晚班: ['夢子', '安妮亞', '鹿丸', '江海', '馬斯克', '傑諾', '白馬', '柳丁', '杜月笙 (組長)', '五條悟 (組長)'],
-            新增: ['冬瓜', '紅丸'],
-            客服: ['星空', '森鋒']
-        };
+<label for="shift">班別：</label>
+<select id="shift" onchange="updateNames()" autocomplete="off">
+<option value="早班">早班</option>
+<option value="晚班">晚班</option>
+<option value="新增">新增</option>
+<option value="客服">客服</option>
+</select>
 
-        function updateNames() {
-            const shift = document.getElementById('shift').value;
-            const nameSelect = document.getElementById('name');
-            nameSelect.innerHTML = '';
-            employees[shift].forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                nameSelect.appendChild(option);
-            });
-        }
+<label for="name">姓名：</label>
+<select id="name" autocomplete="off"></select>
 
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleString('zh-TW', { 
-                timeZone: 'Asia/Taipei',
-                year: 'numeric', month: '2-digit', day: '2-digit', 
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-            });
-            document.getElementById('clock').textContent = `當前時間: ${timeString}`;
-        }
+<label for="type">打卡項目：</label>
+<select id="type" autocomplete="off">
+<option value="上班">上班</option>
+<option value="下班">下班</option>
+<option value="吃飯">吃飯</option>
+<option value="結束吃飯">結束吃飯</option>
+<option value="休息">休息</option>
+<option value="結束休息">結束休息</option>
+<option value="廁所">廁所</option>
+<option value="抽菸">抽菸</option>
+<option value="返回座位">返回座位</option>
+<option value="事假">事假</option>
+<option value="病假">病假</option>
+<option value="銷假上班">銷假上班</option>
+</select>
 
-        const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+<button id="checkInBtn" onclick="checkIn()">打卡</button>
 
-        function showMessage(elementId, message, isError = false) {
-            const msgElement = document.getElementById(elementId);
-            msgElement.textContent = message;
-            msgElement.style.display = 'block';
-            msgElement.style.color = isError ? 'red' : 'green';
-            setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
-        }
+<div id="records">
+<h2>打卡記錄</h2>
+<button id="exportBtn" onclick="exportToCSV()">匯出報表 (CSV)</button>
+<table>
+<thead>
+<tr>
+<th>姓名</th>
+<th>班別</th>
+<th>項目</th>
+<th>時間</th>
+<th>IP 地址</th>
+</tr>
+</thead>
+<tbody id="recordTable"></tbody>
+</table>
+</div>
 
-        async function getIPAddress() {
-            const ipAPIs = [
-                'https://api.ipify.org?format=json',
-                'https://ipapi.co/json/',
-                'https://ipinfo.io/json'
-            ];
-            for (const api of ipAPIs) {
-                try {
-                    const response = await fetch(api, { timeout: 5000 });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
-                    return data.ip || data.query || 'N/A';
-                } catch (error) {
-                    console.warn(`IP API ${api} 失敗: ${error.message}`);
-                }
-            }
-            showMessage('errorMsg', '無法獲取 IP 地址，請檢查網路連線', true);
-            return 'N/A';
-        }
+<script>
+const employees={
+早班: ['來財', '南風', '胖子', '大飛', '小柒', '曹操 (組長)'],
+晚班: ['夢子', '安妮亞', '鹿丸', '江海', '馬斯克', '傑諾', '白馬', '柳丁', '杜月笙 (組長)', '五條悟 (組長)'],
+新增: ['冬瓜', '紅丸'],
+客服: ['星空', '森鋒']
+};
 
-        async function checkIn() {
-            const shift = document.getElementById('shift').value;
-            const name = document.getElementById('name').value;
-            const type = document.getElementById('type').value;
-            if (!shift || !name || !type) {
-                showMessage('errorMsg', '請選擇班別、姓名和打卡項目', true);
-                return;
-            }
+function updateNames(){
+const shift=document.getElementById('shift').value;
+const nameSelect=document.getElementById('name');
+nameSelect.innerHTML='';
+employees[shift].forEach(name=>{
+const option=document.createElement('option');
+option.value=name;
+option.textContent=name;
+nameSelect.appendChild(option);
+});
+}
 
-            if (!confirm(`確定要為 ${name} 打卡 ${type}？`)) {
-                return;
-            }
+function updateClock(){
+const now=new Date();
+const timeString=now.toLocaleString('zh-TW',{
+timeZone: 'Asia/Taipei',
+year: 'numeric',month: '2-digit',day: '2-digit',
+hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
+});
+document.getElementById('clock').textContent=`當前時間: ${timeString}`;
+}
 
-            const timeString = new Date().toLocaleString('zh-TW', { 
-                timeZone: 'Asia/Taipei',
-                year: 'numeric', month: '2-digit', day: '2-digit', 
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-            });
+const DATABASE_URL='https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
 
-            const ip = await getIPAddress();
-            if (ip === 'N/A') {
-                showMessage('errorMsg', '無法獲取 IP 地址，打卡失敗', true);
-                return;
-            }
+function showMessage(elementId,message,isError=false){
+const msgElement=document.getElementById(elementId);
+msgElement.textContent=message;
+msgElement.style.display='block';
+msgElement.style.color=isError?'red':'green';
+setTimeout(()=>{msgElement.style.display='none';},5000);
+}
 
-            const record = { shift, name, type, time: timeString, ip };
+async function getIPAddress(){
+const ipAPIs=[
+'https://api.ipify.org?format=json',
+'https://ipapi.co/json/',
+'https://ipinfo.io/json'
+];
+for(const api of ipAPIs){
+try{
+const response=await fetch(api,{timeout:5000});
+if(!response.ok)throw new Error(`HTTP ${response.status}`);
+const data=await response.json();
+return data.ip||data.query||'N/A';
+}catch(error){
+console.warn(`IP API ${api} 失敗: ${error.message}`);
+}
+}
+showMessage('errorMsg','無法獲取 IP 地址，請檢查網路連線',true);
+return'N/A';
+}
 
-            // 請加入這行，這將是診斷的關鍵！
-            console.log('即將傳送的打卡記錄:', record);
+async function checkIn(){
+const shift=document.getElementById('shift').value;
+const name=document.getElementById('name').value;
+const type=document.getElementById('type').value;
+if(!shift||!name||!type){
+showMessage('errorMsg','請選擇班別、姓名和打卡項目',true);
+return;
+}
 
-            try {
-                const response = await fetch(DATABASE_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(record)
-                });
-                await loadRecords();
-                showMessage('successMsg', '打卡成功，已儲存到資料庫');
-            } catch (error) {
-                showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
-                console.error('打卡失敗:', error);
-            }
-        }
+if(!confirm(`確定要為 ${name} 打卡 ${type}？`)){
+return;
+}
 
-        async function loadRecords() {
-            try {
-                const response = await fetch(`${DATABASE_URL}?action=get`);
-                if (!response.ok) {
-                    throw new Error(`無法載入記錄: HTTP ${response.status}`);
-                }
-                const records = await response.json();
-                if (records.error) {
-                    throw new Error(records.error);
-                }
-                records.sort((a, b) => new Date(b.time) - new Date(a.time));
-                const recordTable = document.getElementById('recordTable');
-                recordTable.innerHTML = '';
-                records.forEach(record => {
-                    const time = new Date(record.time);
-                    const formattedTime = time.toLocaleString('zh-TW', { 
-                        timeZone: 'Asia/Taipei',
-                        year: 'numeric', month: '2-digit', day: '2-digit', 
-                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-                    });
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${record.name}</td>
-                        <td>${record.shift}</td>
-                        <td>${record.type}</td>
-                        <td>${formattedTime}</td>
-                        <td>${record.ip || 'N/A'}</td>
-                    `;
-                    recordTable.appendChild(row);
-                });
-                return records;
-            } catch (error) {
-                showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
-                console.error('載入記錄失敗:', error);
-                return [];
-            }
-        }
+const timeString=new Date().toLocaleString('zh-TW',{
+timeZone: 'Asia/Taipei',
+year: 'numeric',month: '2-digit',day: '2-digit',
+hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
+});
 
-        async function exportToCSV() {
-            const records = await loadRecords();
-            if (records.length === 0) {
-                showMessage('errorMsg', '無記錄可匯出', true);
-                return;
-            }
+const ip=await getIPAddress();
+if(ip==='N/A'){
+showMessage('errorMsg','無法獲取 IP 地址，打卡失敗',true);
+return;
+}
 
-            const headers = ['姓名', '班別', '項目', '時間', 'IP 地址'];
-            const csvRows = [headers.join(',')];
-            records.forEach(record => {
-                const time = new Date(record.time);
-                const formattedTime = time.toLocaleString('zh-TW', { 
-                    timeZone: 'Asia/Taipei',
-                    year: 'numeric', month: '2-digit', day: '2-digit', 
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-                });
-                const row = [
-                    `"${record.name}"`,
-                    `"${record.shift}"`,
-                    `"${record.type}"`,
-                    `"${formattedTime}"`,
-                    `"${record.ip || 'N/A'}"`
-                ];
-                csvRows.push(row.join(','));
-            });
-            const csvContent = csvRows.join('\n');
+const record={shift,name,type,time: timeString,ip};
 
-            const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }).replace(/\//g, '-')}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        }
+try{
+const response=await fetch(DATABASE_URL,{
+method: 'POST',
+headers:{'Content-Type': 'application/json'},
+body: JSON.stringify(record)
+});
+if(!response.ok){
+throw new Error(`伺服器錯誤: HTTP ${response.status}`);
+}
+await loadRecords();
+showMessage('successMsg','打卡成功，已儲存到資料庫');
+}catch(error){
+showMessage('errorMsg',`打卡失敗: ${error.message}`,true);
+console.error('打卡失敗:',error);
+}
+}
 
-        function startAutoRefresh() {
-            setInterval(function() {
-                if (document.visibilityState === 'visible') {
-                    loadRecords();
-                }
-            }, 30000);
-        }
+async function loadRecords(){
+try{
+const response=await fetch(`${DATABASE_URL}?action=get`);
+if(!response.ok){
+throw new Error(`無法載入記錄: HTTP ${response.status}`);
+}
+const records=await response.json();
+if(records.error){
+throw new Error(records.error);
+}
+records.sort((a,b)=>new Date(b.time.replace(/\//g,'-')+'Z')-new Date(a.time.replace(/\//g,'-')+'Z'));
+const recordTable=document.getElementById('recordTable');
+recordTable.innerHTML='';
+records.forEach(record=>{
+const time=new Date(record.time.replace(/\//g,'-')+'Z');
+const formattedTime=time.toLocaleString('zh-TW',{
+timeZone: 'Asia/Taipei',
+year: 'numeric',month: '2-digit',day: '2-digit',
+hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
+});
+const row=document.createElement('tr');
+row.innerHTML=`
+<td>${record.name}</td>
+<td>${record.shift}</td>
+<td>${record.type}</td>
+<td>${formattedTime}</td>
+<td>${record.ip||'N/A'}</td>
+`;
+recordTable.appendChild(row);
+});
+return records;
+}catch(error){
+showMessage('errorMsg',`載入記錄失敗: ${error.message}`,true);
+console.error('載入記錄失敗:',error);
+return[];
+}
+}
 
-        updateNames();
-        setInterval(updateClock, 1000);
-        updateClock();
-        loadRecords();
-        startAutoRefresh();
-    </script>
+async function exportToCSV(){
+const records=await loadRecords();
+if(records.length===0){
+showMessage('errorMsg','無記錄可匯出',true);
+return;
+}
+
+const headers=['姓名','班別','項目','時間','IP 地址'];
+const csvRows=[headers.join(',')];
+records.forEach(record=>{
+const time=new Date(record.time.replace(/\//g,'-')+'Z');
+const formattedTime=time.toLocaleString('zh-TW',{
+timeZone: 'Asia/Taipei',
+year: 'numeric',month: '2-digit',day: '2-digit',
+hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
+});
+const row=[
+`"${record.name}"`,
+`"${record.shift}"`,
+`"${record.type}"`,
+`"${formattedTime}"`,
+`"${record.ip||'N/A'}"`
+];
+csvRows.push(row.join(','));
+});
+const csvContent=csvRows.join('\n');
+
+const blob=new Blob([`\ufeff${csvContent}`],{type: 'text/csv;charset=utf-8;'});
+const url=window.URL.createObjectURL(blob);
+const link=document.createElement('a');
+link.href=url;
+link.download=`潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW',{timeZone: 'Asia/Taipei'}).replace(/\//g,'-')}.csv`;
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+window.URL.revokeObjectURL(url);
+}
+
+function startAutoRefresh(){
+setInterval(function(){
+if(document.visibilityState==='visible'){
+loadRecords();
+}
+},30000);
+}
+
+updateNames();
+setInterval(updateClock,1000);
+updateClock();
+loadRecords();
+startAutoRefresh();
+</script>
 </body>
 </html>
