@@ -162,24 +162,30 @@
             setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
         }
 
-        // 獲取 IP 地址（多 API 重試）
+        // 獲取 IP 地址（多 API 重試，延長超時）
         async function getIPAddress() {
             const ipAPIs = [
                 'https://api.ipify.org?format=json',
                 'https://ipapi.co/json/',
-                'https://api.myip.com'
+                'https://api.ipgeolocation.io/getIp',
+                'https://api.myip.com',
+                'https://api.ipstack.com/check?access_key=your_access_key' // 可選，需註冊免費 API Key
             ];
             for (const api of ipAPIs) {
                 try {
-                    const response = await fetch(api, { timeout: 5000 });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 秒超時
+                    const response = await fetch(api, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status} from ${api}`);
                     const data = await response.json();
-                    return data.ip || data.query || 'N/A';
+                    const ip = data.ip || data.query || data.ipAddress || 'N/A';
+                    if (ip !== 'N/A') return ip;
                 } catch (error) {
                     console.warn(`IP API ${api} 失敗: ${error.message}`);
                 }
             }
-            showMessage('errorMsg', '無法獲取 IP 地址，請檢查網路連線', true);
+            showMessage('errorMsg', '無法獲取 IP 地址，請檢查網路連線或稍後重試', true);
             return 'N/A';
         }
 
@@ -222,7 +228,7 @@
                     body: JSON.stringify(record)
                 });
                 await loadRecords();
-                showMessage('successMsg', '打卡成功，已儲存到資料庫');
+                showMessage('successMsg', `打卡成功，已儲存到資料庫（IP: ${ip}）`);
             } catch (error) {
                 showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
                 console.error('打卡失敗:', error);
