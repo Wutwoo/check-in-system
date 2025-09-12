@@ -3,57 +3,297 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>潤森鑫打卡系統 (v7.0 最终诊断)</title>
-<style>body{font-family: Arial, sans-serif;max-width: 800px;margin: 0 auto;padding: 20px;} h1, h2 {text-align: center;}</style>
+<title>潤森鑫打卡系統 (v8.3 最終繁體版)</title>
+<style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+    #clock { font-size: 24px; margin-bottom: 20px; }
+    select, button { padding: 10px; font-size: 16px; margin: 10px; }
+    #records { margin-top: 20px; text-align: left; max-height: 400px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; position: sticky; top: 0; }
+    #exportBtn { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    #exportBtn:hover { background-color: #45a049; }
+    #checkInBtn { background-color: #007bff; color: white; border: none; cursor: pointer; }
+    #checkInBtn:hover { background-color: #0056b3; }
+    #errorMsg { color: red; margin-top: 10px; display: none; }
+    #successMsg { color: green; margin-top: 10px; display: none; }
+    #filterControls { text-align: left; margin-bottom: 15px; }
+</style>
 </head>
 <body>
-<h1>潤森鑫打卡系統 - 诊断模式</h1>
-<div id="clock"></div>
-<div id="records"><h2>请按 F12 打开浏览器的 Console，然后将看到的表格截图给我。</h2></div>
+    <h1>潤森鑫打卡系統</h1>
+    <div id="clock"></div>
+    <div id="errorMsg"></div>
+    <div id="successMsg"></div>
+
+    <label for="group">組別：</label>
+    <select id="group" onchange="updateNames()" autocomplete="off">
+        <option value="天狼組">天狼組</option>
+        <option value="洋天組">洋天組</option>
+        <option value="策天組">策天組</option>
+        <option value="新增">新增</option>
+        <option value="客服">客服</option>
+    </select>
+
+    <label for="name">姓名：</label>
+    <select id="name" autocomplete="off"></select>
+
+    <label for="type">打卡項目：</label>
+    <select id="type" autocomplete="off">
+        <option value="上班">上班</option>
+        <option value="下班">下班</option>
+        <option value="吃飯">吃飯</option>
+        <option value="結束吃飯">結束吃飯</option>
+        <option value="休息">休息</option>
+        <option value="結束休息">結束休息</option>
+        <option value="廁所">廁所</option>
+        <option value="抽菸">抽菸</option>
+        <option value="返回座位">返回座位</option>
+        <option value="事假">事假</option>
+        <option value="病假">病假</option>
+        <option value="銷假上班">銷假上班</option>
+    </select>
+
+    <button id="checkInBtn" onclick="checkIn()">打卡</button>
+
+    <div id="records">
+        <h2>打卡記錄 (僅顯示過去 24 小時)</h2>
+        <div id="filterControls">
+            <label for="filterGroup">按組別篩選：</label>
+            <select id="filterGroup" onchange="loadRecords()"></select>
+        </div>
+        <button id="exportBtn" onclick="exportToCSV()">匯出報表 (CSV)</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>組別</th>
+                    <th>項目</th>
+                    <th>時間</th>
+                    <th>IP 位址</th>
+                </tr>
+            </thead>
+            <tbody id="recordTable"></tbody>
+        </table>
+    </div>
 
 <script>
-// *** ↓↓↓ 请务必将下面的 URL 替换成您最新部署後的 Web App URL ↓↓↓ ***
-const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+    const employees = {
+        天狼組: ['曹操 (組長)', '來財', '南風', '胖子', '大飛', '小柒', '馬超'],
+        洋天組: ['杜月笙 (組長)', '江海', '馬斯克', '白馬'],
+        策天組: ['五條悟 (組長)', '夢子', '安妮亞', '鹿丸', '傑諾', '柳丁'],
+        新增: ['紅丸', '冬瓜'],
+        客服: ['星空', '森鋒']
+    };
+    
+    // *** ↓↓↓ 请务必将下面的 URL 替换成您最新部署後的 Web App URL ↓↓↓ ***
+    const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
 
-/**
- * *** 核心修改：这是一个诊断函式，它会用表格打印出最原始的数据 ***
- */
-function handleData(data) {
-  console.log("===================================");
-  console.log("终极诊断：从后端接收到的最原始数据");
-  console.log("后端传回了一个包含 " + data.length + " 行的阵列。");
-  console.log("下面的表格，就是后端在 Google Sheet 中实际读取到的内容：");
-  
-  // 使用 console.table() 可以用非常清晰的表格格式显示二维阵列
-  console.table(data); 
-  
-  console.log("===================================");
+    let recordsPromiseResolver = null;
+    function handleData(data) {
+        console.log("成功從後端接收到的原始資料:", data);
+        if (recordsPromiseResolver) {
+            recordsPromiseResolver(data);
+            recordsPromiseResolver = null;
+        }
+    }
 
-  const recordsDiv = document.getElementById('records');
-  if (data && data.length > 1 && data[1][0] !== "") {
-      recordsDiv.innerHTML = '<h2>诊断成功！请将 Console 中的表格截图或拍照给我。</h2><p style="color:green; text-align:center;">看起来有读取到数据！</p>';
-  } else if (data && data.length > 1 && data[1][0] === "") {
-      recordsDiv.innerHTML = '<h2>诊断成功！请将 Console 中的表格截图或拍照给我。</h2><p style="color:red; text-align:center;">警告：后端读取到的单元格是空的！</p>';
-  } else {
-      recordsDiv.innerHTML = '<h2>诊断完成。</h2><p>后端可能返回了错误或空的工作表。</p>';
-  }
-}
+    async function fetchAndFilterRecords() {
+        return new Promise((resolve, reject) => {
+            recordsPromiseResolver = (data) => {
+                if (data.error) {
+                    console.error("後端返回錯誤:", data.error);
+                    reject(new Error(data.error));
+                    return;
+                }
+                const selectedGroup = document.getElementById('filterGroup').value;
+                const groupFilteredRecords = selectedGroup === '全部' ? data : data.filter(record => record.shift === selectedGroup);
+                const now = new Date();
+                const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+                
+                const finalRecords = groupFilteredRecords.filter(record => {
+                    if (!record.time) return false;
+                    const recordTime = new Date(record.time);
+                    return recordTime >= twentyFourHoursAgo;
+                });
 
-// 简化版的载入函式
-function loadRecords() {
-    console.log("开始进行最终诊断...");
-    const script = document.createElement('script');
-    script.src = DATABASE_URL;
-    script.onerror = () => { console.error('诊断脚本载入失败，请检查 URL 或网路连线。'); };
-    document.body.appendChild(script);
-}
+                // *** 关键修正：简体改繁体 ***
+                console.log("經過 24 小時篩選後，剩餘 " + finalRecords.length + " 筆記錄");
+                resolve(finalRecords);
+            };
+            const script = document.createElement('script');
+            script.src = DATABASE_URL;
+            script.onerror = () => { reject(new Error('JSONP 請求失敗')); };
+            document.body.appendChild(script);
+        });
+    }
 
-// 简化版的时钟
-function updateClock(){ const a=(new Date).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}); document.getElementById("clock").textContent = `当前时间: ${a}`; }
-setInterval(updateClock, 1000);
-updateClock();
-// 页面载入后立刻执行诊断
-loadRecords(); 
+    async function loadRecords() {
+        try {
+            const records = await fetchAndFilterRecords();
+            records.sort((a, b) => {
+                const timeA = new Date(a.time);
+                const timeB = new Date(b.time);
+                return timeB - timeA;
+            });
+            const recordTable = document.getElementById('recordTable');
+            recordTable.innerHTML = '';
+            records.forEach(record => {
+                const time = new Date(record.time);
+                const formattedTime = time.toLocaleString('zh-TW', {
+                    timeZone: 'Asia/Taipei',
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                });
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${record.name}</td><td>${record.shift}</td><td>${record.type}</td><td>${formattedTime}</td><td>${record.ip || 'N/A'}</td>`;
+                recordTable.appendChild(row);
+            });
+            return records;
+        } catch (error) {
+            console.error("載入記錄失敗:", error);
+            showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
+            return [];
+        }
+    }
+
+    function updateNames() {
+        const group = document.getElementById('group').value;
+        const nameSelect = document.getElementById('name');
+        nameSelect.innerHTML = '';
+        employees[group].forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            nameSelect.appendChild(option);
+        });
+    }
+
+    function populateFilter() {
+        const filterSelect = document.getElementById('filterGroup');
+        filterSelect.innerHTML = '<option value="全部">全部</option>';
+        Object.keys(employees).forEach(group => {
+            const option = document.createElement('option');
+            option.value = group;
+            option.textContent = group;
+            filterSelect.appendChild(option);
+        });
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleString('zh-TW', {
+            timeZone: 'Asia/Taipei',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        });
+        document.getElementById('clock').textContent = `當前時間: ${timeString}`;
+    }
+
+    function showMessage(elementId, message, isError = false) {
+        const msgElement = document.getElementById(elementId);
+        msgElement.textContent = message;
+        msgElement.style.display = 'block';
+        msgElement.style.color = isError ? 'red' : 'green';
+        setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
+    }
+
+    async function getIPAddress() {
+        const ipAPIs = ['https://api.ipify.org?format=json', 'https://ipapi.co/json/', 'https://ipinfo.io/json'];
+        for (const api of ipAPIs) {
+            try {
+                const response = await fetch(api, { signal: AbortSignal.timeout(3000) });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return data.ip || data.query || 'N/A';
+            } catch (error) {
+                console.warn(`IP API ${api} 失敗: ${error.message}`);
+            }
+        }
+        showMessage('errorMsg', '無法獲取 IP 位址，請檢查網路連線', true);
+        return 'N/A';
+    }
+
+    async function checkIn() {
+        const group = document.getElementById('group').value;
+        const name = document.getElementById('name').value;
+        const type = document.getElementById('type').value;
+        if (!group || !name || !type) {
+            showMessage('errorMsg', '請選擇組別、姓名和打卡項目', true);
+            return;
+        }
+        if (!confirm(`確定要為 ${name} 打卡 ${type}？`)) {
+            return;
+        }
+        const timeString = document.getElementById('clock').textContent.replace('當前時間: ', '');
+        const ip = await getIPAddress();
+        if (ip === 'N/A') {
+            showMessage('errorMsg', '無法獲取 IP 位址，打卡失敗', true);
+            return;
+        }
+        const record = { shift: group, name: name, type: type, time: timeString, ip: ip };
+        try {
+            await fetch(DATABASE_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(record)
+            });
+            await loadRecords();
+            showMessage('successMsg', '打卡成功，已儲存到資料庫');
+        } catch (error) {
+            showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
+            console.error('打卡失敗:', error);
+        }
+    }
+
+    async function exportToCSV() {
+        const records = await loadRecords();
+        if (records.length === 0) {
+            showMessage('errorMsg', '無記錄可匯出', true);
+            return;
+        }
+        const headers = ['姓名', '組別', '項目', '時間', 'IP 位址'];
+        const csvRows = [headers.join(',')];
+        records.forEach(record => {
+            const time = new Date(record.time);
+            const formattedTime = time.toLocaleString('zh-TW', {
+                timeZone: 'Asia/Taipei',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+            const row = [`"${record.name}"`, `"${record.shift}"`, `"${record.type}"`, `"${formattedTime}"`, `"${record.ip || 'N/A'}"`];
+            csvRows.push(row.join(','));
+        });
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateString = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }).replace(/\//g, '-');
+        link.href = url;
+        link.download = `潤森鑫_打卡記錄_${dateString}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    }
+
+    function startAutoRefresh() {
+        setInterval(function() {
+            if (document.visibilityState === 'visible') {
+                loadRecords();
+            }
+        }, 30000);
+    }
+
+    // --- 頁面初始化 ---
+    updateNames();
+    populateFilter();
+    setInterval(updateClock, 1000);
+    updateClock();
+    loadRecords();
+    startAutoRefresh();
 </script>
 </body>
 </html>
