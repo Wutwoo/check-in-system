@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>潤森鑫打卡系統 (v9.2 修復版)</title>
+<title>潤森鑫打卡系統 (v9.5 最終修復版)</title>
 <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
     #clock { font-size: 24px; margin-bottom: 20px; }
@@ -112,11 +112,15 @@
                     reject(new Error("後端數據格式錯誤"));
                     return;
                 }
+                // 過濾空記錄
+                const validRecords = data.filter(record => 
+                    record.shift || record.name || record.type || record.time || record.ip
+                );
                 const selectedGroup = document.getElementById('filterGroup').value;
-                const groupFilteredRecords = selectedGroup === '全部' ? data : data.filter(record => record.shift === selectedGroup);
+                const groupFilteredRecords = selectedGroup === '全部' ? validRecords : validRecords.filter(record => record.shift === selectedGroup);
                 const reversedRecords = groupFilteredRecords.reverse();
                 const finalRecords = reversedRecords.slice(0, 200);
-                console.log(`取得 ${groupFilteredRecords.length} 筆資料，顯示最近 ${finalRecords.length} 筆`);
+                console.log(`取得 ${validRecords.length} 筆有效資料，顯示最近 ${finalRecords.length} 筆`);
                 resolve(finalRecords);
             };
             const script = document.createElement('script');
@@ -183,8 +187,9 @@
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const seconds = String(date.getSeconds()).padStart(2, '0');
-        const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        const formattedTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
         document.getElementById("clock").textContent = `當前時間: ${formattedTime}`;
+        return formattedTime;
     }
 
     function showMessage(id, message, isError = false) {
@@ -220,7 +225,7 @@
             return;
         }
         if (!confirm(`確定要為 ${name} 打卡 ${type}？`)) return;
-        const time = document.getElementById("clock").textContent.replace('當前時間: ', '');
+        const time = updateClock(); // 使用 ISO 8601 格式
         const ip = await getIPAddress();
         const data = { shift: group, name: name, type: type, time: time, ip: ip };
         try {
@@ -230,6 +235,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            console.log("打卡請求發送:", JSON.stringify(data));
             await loadRecords();
             showMessage('successMsg', '打卡成功，已儲存到資料庫');
         } catch (error) {
