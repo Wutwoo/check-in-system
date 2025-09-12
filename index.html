@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>潤森鑫打卡系統 (最終除錯版)</title>
+<title>潤森鑫打卡系統 (v4.0 最終版)</title>
 <style>
 /* ... CSS 樣式保持不變 ... */
 body{font-family: Arial, sans-serif;max-width: 800px;margin: 0 auto;padding: 20px;text-align: center;}
@@ -50,7 +50,7 @@ async function getIPAddress(){const ipAPIs=['https://api.ipify.org?format=json',
 async function checkIn(){const group=document.getElementById('group').value;const name=document.getElementById('name').value;const type=document.getElementById('type').value;if(!group||!name||!type){showMessage('errorMsg','請選擇組別、姓名和打卡項目',true);return;}if(!confirm(`確定要為 ${name} 打卡 ${type}？`)){return;}const timeString=document.getElementById('clock').textContent.replace('當前時間: ','');const ip=await getIPAddress();if(ip==='N/A'){showMessage('errorMsg','無法獲取 IP 地址，打卡失敗',true);return;}const record={shift:group,name:name,type:type,time:timeString,ip:ip};try{await fetch(DATABASE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});await loadRecords();showMessage('successMsg','打卡成功，已儲存到資料庫');}catch(error){showMessage('errorMsg',`打卡失敗: ${error.message}`,true);console.error('打卡失敗:',error);}}
 
 
-// *** 核心修改處：增加了 console.log 來進行除錯 ***
+// *** 核心修改處：將 action=get 改為路徑參數 ***
 async function fetchAndFilterRecords(){
   return new Promise((resolve,reject)=>{
     const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -58,7 +58,6 @@ async function fetchAndFilterRecords(){
       delete window[callbackName];
       document.body.removeChild(script);
       if (data.error){
-        // 在 Console 中印出後端返回的具體錯誤
         console.error("後端返回錯誤:", data.error);
         throw new Error(data.error);
       }
@@ -75,10 +74,9 @@ async function fetchAndFilterRecords(){
 
     const script = document.createElement('script');
     
-    // *** 關鍵除錯步驟 ***
-    const finalUrl = `${DATABASE_URL}?action=get&callback=${callbackName}`;
-    // 在發出請求前，先在 Console 中印出完整的請求 URL
-    console.log("正在請求的 URL:", finalUrl); 
+    // 將 /exec 後面直接加上 /get，? 後面只留 callback
+    const finalUrl = `${DATABASE_URL}/get?callback=${callbackName}`;
+    console.log("正在請求的 URL (路徑參數版):", finalUrl); 
     
     script.src = finalUrl;
     script.onerror = ()=>{
