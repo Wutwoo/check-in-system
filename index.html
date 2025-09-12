@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>潤森鑫打卡系統 (v8.3 最終繁體版)</title>
+<title>潤森鑫打卡系統 (v8.4 最終繁體修正)</title>
 <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
     #clock { font-size: 24px; margin-bottom: 20px; }
@@ -87,8 +87,36 @@
         客服: ['星空', '森鋒']
     };
     
-    // *** ↓↓↓ 请务必将下面的 URL 替换成您最新部署後的 Web App URL ↓↓↓ ***
+    // *** ↓↓↓ 請務必將下面的 URL 替換成您最新部署後的 Web App URL ↓↓↓ ***
     const DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+
+    /**
+     * *** 關鍵修正：一個絕對可靠的日期解析函式 ***
+     * 這個函式會手動解析 "YYYY-MM-DDTHH:mm:ss" 格式
+     */
+    function parseDateString(timeString) {
+        if (!timeString || typeof timeString !== 'string') return null;
+        const parts = timeString.split('T');
+        if (parts.length !== 2) return null; // 格式不對
+        
+        const dateParts = parts[0].split('-');
+        const timeParts = parts[1].split(':');
+        
+        if (dateParts.length !== 3 || timeParts.length !== 3) return null; // 格式不對
+        
+        // new Date(year, monthIndex, day, hours, minutes, seconds)
+        // 注意：月份是從 0 開始的 (0=1月, 1=2月...)
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; 
+        const day = parseInt(dateParts[2], 10);
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+        const seconds = parseInt(timeParts[2], 10);
+        
+        const date = new Date(year, month, day, hours, minutes, seconds);
+        // 最後檢查一次是否生成了有效的日期
+        return isNaN(date.getTime()) ? null : date;
+    }
 
     let recordsPromiseResolver = null;
     function handleData(data) {
@@ -103,7 +131,6 @@
         return new Promise((resolve, reject) => {
             recordsPromiseResolver = (data) => {
                 if (data.error) {
-                    console.error("後端返回錯誤:", data.error);
                     reject(new Error(data.error));
                     return;
                 }
@@ -113,12 +140,11 @@
                 const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
                 
                 const finalRecords = groupFilteredRecords.filter(record => {
-                    if (!record.time) return false;
-                    const recordTime = new Date(record.time);
+                    const recordTime = parseDateString(record.time);
+                    if (!recordTime) return false; // 如果解析失敗，就過濾掉
                     return recordTime >= twentyFourHoursAgo;
                 });
 
-                // *** 关键修正：简体改繁体 ***
                 console.log("經過 24 小時篩選後，剩餘 " + finalRecords.length + " 筆記錄");
                 resolve(finalRecords);
             };
@@ -133,14 +159,17 @@
         try {
             const records = await fetchAndFilterRecords();
             records.sort((a, b) => {
-                const timeA = new Date(a.time);
-                const timeB = new Date(b.time);
+                const timeA = parseDateString(a.time);
+                const timeB = parseDateString(b.time);
+                if (!timeA || !timeB) return 0; // 如果有無法解析的日期，不改變順序
                 return timeB - timeA;
             });
             const recordTable = document.getElementById('recordTable');
             recordTable.innerHTML = '';
             records.forEach(record => {
-                const time = new Date(record.time);
+                const time = parseDateString(record.time);
+                if (!time) return; // 如果無法解析，不顯示這一行
+                
                 const formattedTime = time.toLocaleString('zh-TW', {
                     timeZone: 'Asia/Taipei',
                     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -158,142 +187,16 @@
         }
     }
 
-    function updateNames() {
-        const group = document.getElementById('group').value;
-        const nameSelect = document.getElementById('name');
-        nameSelect.innerHTML = '';
-        employees[group].forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            nameSelect.appendChild(option);
-        });
-    }
-
-    function populateFilter() {
-        const filterSelect = document.getElementById('filterGroup');
-        filterSelect.innerHTML = '<option value="全部">全部</option>';
-        Object.keys(employees).forEach(group => {
-            const option = document.createElement('option');
-            option.value = group;
-            option.textContent = group;
-            filterSelect.appendChild(option);
-        });
-    }
-
-    function updateClock() {
-        const now = new Date();
-        const timeString = now.toLocaleString('zh-TW', {
-            timeZone: 'Asia/Taipei',
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-        });
-        document.getElementById('clock').textContent = `當前時間: ${timeString}`;
-    }
-
-    function showMessage(elementId, message, isError = false) {
-        const msgElement = document.getElementById(elementId);
-        msgElement.textContent = message;
-        msgElement.style.display = 'block';
-        msgElement.style.color = isError ? 'red' : 'green';
-        setTimeout(() => { msgElement.style.display = 'none'; }, 5000);
-    }
-
-    async function getIPAddress() {
-        const ipAPIs = ['https://api.ipify.org?format=json', 'https://ipapi.co/json/', 'https://ipinfo.io/json'];
-        for (const api of ipAPIs) {
-            try {
-                const response = await fetch(api, { signal: AbortSignal.timeout(3000) });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                return data.ip || data.query || 'N/A';
-            } catch (error) {
-                console.warn(`IP API ${api} 失敗: ${error.message}`);
-            }
-        }
-        showMessage('errorMsg', '無法獲取 IP 位址，請檢查網路連線', true);
-        return 'N/A';
-    }
-
-    async function checkIn() {
-        const group = document.getElementById('group').value;
-        const name = document.getElementById('name').value;
-        const type = document.getElementById('type').value;
-        if (!group || !name || !type) {
-            showMessage('errorMsg', '請選擇組別、姓名和打卡項目', true);
-            return;
-        }
-        if (!confirm(`確定要為 ${name} 打卡 ${type}？`)) {
-            return;
-        }
-        const timeString = document.getElementById('clock').textContent.replace('當前時間: ', '');
-        const ip = await getIPAddress();
-        if (ip === 'N/A') {
-            showMessage('errorMsg', '無法獲取 IP 位址，打卡失敗', true);
-            return;
-        }
-        const record = { shift: group, name: name, type: type, time: timeString, ip: ip };
-        try {
-            await fetch(DATABASE_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(record)
-            });
-            await loadRecords();
-            showMessage('successMsg', '打卡成功，已儲存到資料庫');
-        } catch (error) {
-            showMessage('errorMsg', `打卡失敗: ${error.message}`, true);
-            console.error('打卡失敗:', error);
-        }
-    }
-
-    async function exportToCSV() {
-        const records = await loadRecords();
-        if (records.length === 0) {
-            showMessage('errorMsg', '無記錄可匯出', true);
-            return;
-        }
-        const headers = ['姓名', '組別', '項目', '時間', 'IP 位址'];
-        const csvRows = [headers.join(',')];
-        records.forEach(record => {
-            const time = new Date(record.time);
-            const formattedTime = time.toLocaleString('zh-TW', {
-                timeZone: 'Asia/Taipei',
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-            });
-            const row = [`"${record.name}"`, `"${record.shift}"`, `"${record.type}"`, `"${formattedTime}"`, `"${record.ip || 'N/A'}"`];
-            csvRows.push(row.join(','));
-        });
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        const dateString = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }).replace(/\//g, '-');
-        link.href = url;
-        link.download = `潤森鑫_打卡記錄_${dateString}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-    }
-
-    function startAutoRefresh() {
-        setInterval(function() {
-            if (document.visibilityState === 'visible') {
-                loadRecords();
-            }
-        }, 30000);
-    }
-
-    // --- 頁面初始化 ---
-    updateNames();
-    populateFilter();
-    setInterval(updateClock, 1000);
-    updateClock();
-    loadRecords();
-    startAutoRefresh();
+    // --- 以下為無需修改的輔助函式 ---
+    function updateNames(){const a=document.getElementById("group").value;const b=document.getElementById("name");b.innerHTML="";employees[a].forEach(c=>{const d=document.createElement("option");d.value=c;d.textContent=c;b.appendChild(d)})}
+    function populateFilter(){const a=document.getElementById("filterGroup");a.innerHTML='<option value="全部">全部</option>';Object.keys(employees).forEach(b=>{const c=document.createElement("option");c.value=b;c.textContent=b;a.appendChild(c)})}
+    function updateClock(){const a=(new Date).toLocaleString("zh-TW",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:!1});document.getElementById("clock").textContent=`當前時間: ${a}`}
+    function showMessage(a,b,c=!1){const d=document.getElementById(a);d.textContent=b;d.style.display="block";d.style.color=c?"red":"green";setTimeout(()=>{d.style.display="none"},5e3)}
+    async function getIPAddress(){const a=['https://api.ipify.org?format=json','https://ipapi.co/json/','https://ipinfo.io/json'];for(const b of a)try{const c=await fetch(b,{signal:AbortSignal.timeout(3e3)});if(!c.ok)throw new Error(`HTTP ${c.status}`);const d=await c.json();return d.ip||d.query||'N/A'}catch(c){console.warn(`IP API ${b} 失敗: ${c.message}`)}return showMessage('errorMsg','無法獲取 IP 位址，請檢查網路連線',!0),'N/A'}
+    async function checkIn(){const a=document.getElementById("group").value;const b=document.getElementById("name").value;const c=document.getElementById("type").value;if(!a||!b||!c){showMessage('errorMsg','請選擇組別、姓名和打卡項目',!0);return}if(!confirm(`確定要為 ${b} 打卡 ${c}？`))return;const d=document.getElementById("clock").textContent.replace('當前時間: ','');const e=await getIPAddress();if('N/A'===e){showMessage('errorMsg','無法獲取 IP 位址，打卡失敗',!0);return}const f={shift:a,name:b,type:c,time:d,ip:e};try{await fetch(DATABASE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)}),await loadRecords(),showMessage('successMsg','打卡成功，已儲存到資料庫')}catch(g){showMessage('errorMsg',`打卡失敗: ${g.message}`,!0),console.error('打卡失敗:',g)}}
+    async function exportToCSV(){const a=await loadRecords();if(0===a.length){showMessage('errorMsg','無記錄可匯出',!0);return}const b=['姓名','組別','項目','時間','IP 位址'],c=[b.join(',')];a.forEach(d=>{const e=parseDateString(d.time);if(!e)return;const f=e.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:!1}),g=[`"${d.name}"`,`"${d.shift}"`,`"${d.type}"`,`"${f}"`,`"${d.ip||'N/A'}"`];c.push(g.join(','))});const d=c.join('\n'),e=new Blob(['\ufeff'+d],{type:'text/csv;charset=utf-8;'});const f=window.URL.createObjectURL(e),g=document.createElement('a'),h=(new Date).toLocaleDateString('zh-TW',{timeZone:'Asia/Taipei'}).replace(/\//g,'-');g.href=f;g.download=`潤森鑫_打卡記錄_${h}.csv`;document.body.appendChild(g);g.click();document.body.removeChild(g);window.URL.revokeObjectURL(f)}
+    function startAutoRefresh(){setInterval(function(){'visible'===document.visibilityState&&loadRecords()},3e4)}
+    updateNames();populateFilter();setInterval(updateClock,1e3);updateClock();loadRecords();startAutoRefresh();
 </script>
 </body>
 </html>
