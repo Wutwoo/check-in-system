@@ -20,8 +20,17 @@ const employees={天狼組:['曹操 (組長)','來財','南風','胖子','大飛
 // *** ↓↓↓ 請務必將下面的 URL 替換成您最新部署後的 Web App URL ↓↓↓ ***
 const DATABASE_URL='https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
 
+```javascript
 let recordsPromiseResolver = null;
-function handleData(data) {if (recordsPromiseResolver) {recordsPromiseResolver(data); recordsPromiseResolver = null;}}
+function handleData(data) {
+// *** 決定性的除錯步驟 ***
+// 在處理任何事情之前，先把從後端收到的原始資料印出來看看
+console.log("成功從後端接收到的原始資料:", data);
+if (recordsPromiseResolver) {
+recordsPromiseResolver(data);
+recordsPromiseResolver = null;
+}
+}```
 async function fetchAndFilterRecords(){return new Promise((resolve,reject)=>{recordsPromiseResolver = (data) => {if (data.error){console.error("後端返回錯誤:", data.error); reject(new Error(data.error)); return;} const selectedGroup=document.getElementById('filterGroup').value; const groupFilteredRecords=selectedGroup==='全部'?data:data.filter(record=>record.shift===selectedGroup); const now=new Date(); const twentyFourHoursAgo=new Date(now.getTime()-(24*60*60*1000)); const finalRecords=groupFilteredRecords.filter(record=>{const recordTime=new Date(record.time+' GMT+0800'); return recordTime>=twentyFourHoursAgo;}); resolve(finalRecords);}; const script = document.createElement('script'); const finalUrl = DATABASE_URL; console.log("正在請求的 URL (無參數版):", finalUrl); script.src = finalUrl; script.onerror = ()=>{reject(new Error('JSONP request failed'));}; document.body.appendChild(script);});}
 function updateNames(){const group=document.getElementById('group').value;const nameSelect=document.getElementById('name');nameSelect.innerHTML='';employees[group].forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;nameSelect.appendChild(option);});}
 function populateFilter(){const filterSelect=document.getElementById('filterGroup');filterSelect.innerHTML='<option value="全部">全部</option>';Object.keys(employees).forEach(group=>{const option=document.createElement('option');option.value=group;option.textContent=group;filterSelect.appendChild(option);});}
