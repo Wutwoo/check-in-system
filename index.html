@@ -111,7 +111,7 @@ margin-bottom: 15px;
 <button id="checkInBtn" onclick="checkIn()">打卡</button>
 
 <div id="records">
-<h2>打卡記錄</h2>
+<h2>打卡記錄 (僅顯示過去 24 小時)</h2>
 <div id="filterControls">
 <label for="filterGroup">按組別篩選：</label>
 <select id="filterGroup" onchange="loadRecords()"></select>
@@ -152,10 +152,9 @@ nameSelect.appendChild(option);
 });
 }
 
-// 新增：填充篩選器下拉選單
 function populateFilter(){
 const filterSelect = document.getElementById('filterGroup');
-filterSelect.innerHTML = '<option value="全部">全部</option>'; // 新增一個"全部"選項
+filterSelect.innerHTML = '<option value="全部">全部</option>';
 Object.keys(employees).forEach(group => {
 const option = document.createElement('option');
 option.value = group;
@@ -242,7 +241,7 @@ console.error('打卡失敗:',error);
 }
 }
 
-// 獲取並篩選資料的核心函數
+// *** 主要修改處 ***
 async function fetchAndFilterRecords() {
 try {
 const response = await fetch(`${DATABASE_URL}?action=get`);
@@ -254,24 +253,33 @@ if (records.error) {
 throw new Error(records.error);
 }
 
-// 篩選邏輯
+// 1. 按組別篩選
 const selectedGroup = document.getElementById('filterGroup').value;
-const filteredRecords = selectedGroup === '全部'
+const groupFilteredRecords = selectedGroup === '全部'
 ? records
 : records.filter(record => record.shift === selectedGroup);
 
-return filteredRecords;
+// 2. 按時間篩選 (只保留過去 24 小時的記錄)
+const now = new Date();
+const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+const finalRecords = groupFilteredRecords.filter(record => {
+const recordTime = new Date(record.time + ' GMT+0800');
+return recordTime >= twentyFourHoursAgo;
+});
+
+return finalRecords;
+
 } catch (error) {
 showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
 console.error('載入記錄失敗:', error);
-return []; // 發生錯誤時返回空陣列
+return [];
 }
 }
 
 
-// 更新 loadRecords 來顯示處理過的資料
 async function loadRecords() {
-const records = await fetchAndFilterRecords(); // 獲取已篩選的資料
+const records = await fetchAndFilterRecords();
 
 records.sort((a,b)=>{
 const timeA=new Date(a.time+' GMT+0800');
@@ -301,7 +309,7 @@ return records;
 }
 
 async function exportToCSV(){
-const records=await loadRecords(); // loadRecords 現在返回的是已篩選的記錄
+const records=await loadRecords();
 if(records.length===0){
 showMessage('errorMsg','無記錄可匯出',true);
 return;
@@ -330,7 +338,6 @@ const csvContent=csvRows.join('\n');
 const blob=new Blob([`\ufeff${csvContent}`],{type: 'text/csv;charset=utf-8;'});
 const url=window.URL.createObjectURL(blob);
 const link=document.createElement('a');
-link.href=url;
 link.download=`潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW',{timeZone: 'Asia/Taipei'}).replace(/\//g,'-')}.csv`;
 document.body.appendChild(link);
 link.click();
@@ -346,9 +353,8 @@ loadRecords();
 },30000);
 }
 
-// 頁面初始化
 updateNames();
-populateFilter(); // 呼叫新函式來填充篩選器
+populateFilter();
 setInterval(updateClock,1000);
 updateClock();
 loadRecords();
