@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>潤森鑫打卡系統 (v9.0 最終簡化版)</title>
+<title>潤森鑫打卡系統 (v9.1 修改版)</title>
 <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
     #clock { font-size: 24px; margin-bottom: 20px; }
@@ -110,9 +110,9 @@
                 const groupFilteredRecords = selectedGroup === '全部' ? data : data.filter(record => record.shift === selectedGroup);
                 
                 // *** 核心修改：不再进行时间筛选 ***
-                // 1. 反转阵列，让最新的记录排在最前面
+                // 1. 反转阵列，讓最新的記錄排在最前面
                 const reversedRecords = groupFilteredRecords.reverse();
-                // 2. 只取前 200 笔记录
+                // 2. 只取前 200 筆記錄
                 const finalRecords = reversedRecords.slice(0, 200);
 
                 console.log("取得 " + groupFilteredRecords.length + " 筆資料，顯示最近 " + finalRecords.length + " 筆");
@@ -128,14 +128,16 @@
     async function loadRecords() {
         try {
             const records = await fetchAndFilterRecords();
-            
-            // *** 核心修改：不再进行时间排序 ***
             const recordTable = document.getElementById('recordTable');
             recordTable.innerHTML = '';
+            if (!records || records.length === 0) {
+                recordTable.innerHTML = '<tr><td colspan="5">無記錄可顯示</td></tr>';
+                return records;
+            }
             records.forEach(record => {
                 const row = document.createElement('tr');
-                // 直接显示后端传来的时间字符串，不做任何解析
-                row.innerHTML = `<td>${record.name}</td><td>${record.shift}</td><td>${record.type}</td><td>${record.time}</td><td>${record.ip || 'N/A'}</td>`;
+                // 直接顯示後端傳來的時間字符串，不做任何解析
+                row.innerHTML = `<td>${record.name || ''}</td><td>${record.shift || ''}</td><td>${record.type || ''}</td><td>${record.time || ''}</td><td>${record.ip || 'N/A'}</td>`;
                 recordTable.appendChild(row);
             });
             return records;
@@ -149,10 +151,20 @@
     // --- 以下为无需修改的辅助函式 ---
     function updateNames(){const a=document.getElementById("group").value;const b=document.getElementById("name");b.innerHTML="";employees[a].forEach(c=>{const d=document.createElement("option");d.value=c;d.textContent=c;b.appendChild(d)})}
     function populateFilter(){const a=document.getElementById("filterGroup");a.innerHTML='<option value="全部">全部</option>';Object.keys(employees).forEach(b=>{const c=document.createElement("option");c.value=b;c.textContent=b;a.appendChild(c)})}
-    function updateClock(){const a=(new Date).toLocaleString("zh-TW",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:!1});document.getElementById("clock").textContent=`當前時間: ${a}`}
+    function updateClock(){
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        document.getElementById("clock").textContent = `當前時間: ${formattedTime}`;
+    }
     function showMessage(a,b,c=!1){const d=document.getElementById(a);d.textContent=b;d.style.display="block";d.style.color=c?"red":"green";setTimeout(()=>{d.style.display="none"},5e3)}
     async function getIPAddress(){const a=['https://api.ipify.org?format=json','https://ipapi.co/json/','https://ipinfo.io/json'];for(const b of a)try{const c=await fetch(b,{signal:AbortSignal.timeout(3e3)});if(!c.ok)throw new Error(`HTTP ${c.status}`);const d=await c.json();return d.ip||d.query||'N/A'}catch(c){console.warn(`IP API ${b} 失敗: ${c.message}`)}return showMessage('errorMsg','無法獲取 IP 位址，請檢查網路連線',!0),'N/A'}
-    async function checkIn(){const a=document.getElementById("group").value;const b=document.getElementById("name").value;const c=document.getElementById("type").value;if(!a||!b||!c){showMessage('errorMsg','請選擇組別、姓名和打卡項目',!0);return}if(!confirm(`確定要為 ${b} 打卡 ${c}？`))return;const d=document.getElementById("clock").textContent.replace('當前時間: ','');const e=await getIPAddress();if('N/A'===e){showMessage('errorMsg','無法獲取 IP 位址，打卡失敗',!0);return}const f={shift:a,name:b,type:c,time:d,ip:e};try{await fetch(DATABASE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)}),await loadRecords(),showMessage('successMsg','打卡成功，已儲存到資料庫')}catch(g){showMessage('errorMsg',`打卡失敗: ${g.message}`,!0),console.error('打卡失敗:',g)}}
+    async function checkIn(){const a=document.getElementById("group").value;const b=document.getElementById("name").value;const c=document.getElementById("type").value;if(!a||!b||!c){showMessage('errorMsg','請選擇組別、姓名和打卡項目',!0);return}if(!confirm(`確定要為 ${b} 打卡 ${c}？`))return;const d=document.getElementById("clock").textContent.replace('當前時間: ','');const e=await getIPAddress();const f={shift:a,name:b,type:c,time:d,ip:e};try{await fetch(DATABASE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)}),await loadRecords(),showMessage('successMsg','打卡成功，已儲存到資料庫')}catch(g){showMessage('errorMsg',`打卡失敗: ${g.message}`,!0),console.error('打卡失敗:',g)}}
     async function exportToCSV(){const a=await loadRecords();if(0===a.length){showMessage('errorMsg','無記錄可匯出',!0);return}const b=['姓名','組別','項目','時間','IP 位址'],c=[b.join(',')];a.forEach(d=>{const e=d.time,f=[`"${d.name}"`,`"${d.shift}"`,`"${d.type}"`,`"${e}"`,`"${d.ip||'N/A'}"`];c.push(f.join(','))});const d=c.join('\n'),e=new Blob(['\ufeff'+d],{type:'text/csv;charset=utf-8;'});const f=window.URL.createObjectURL(e),g=document.createElement('a'),h=(new Date).toLocaleDateString('zh-TW',{timeZone:'Asia/Taipei'}).replace(/\//g,'-');g.href=f;g.download=`潤森鑫_打卡記錄_${h}.csv`;document.body.appendChild(g);g.click();document.body.removeChild(g);window.URL.revokeObjectURL(f)}
     function startAutoRefresh(){setInterval(function(){'visible'===document.visibilityState&&loadRecords()},3e4)}
     
