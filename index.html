@@ -278,9 +278,16 @@ const timeA=new Date(a.time+' GMT+0800');
 const timeB=new Date(b.time+' GMT+0800');
 return timeB-timeA;
 });
+
+// *** 修改開始：只取最新的 200 筆紀錄用於顯示 ***
+const recordsToDisplay = records.slice(0, 200);
+// *** 修改結束 ***
+
 const recordTable=document.getElementById('recordTable');
 recordTable.innerHTML='';
-records.forEach(record=>{
+
+// *** 修改：使用 recordsToDisplay 來產生表格 ***
+recordsToDisplay.forEach(record=>{
 const time=new Date(record.time+' GMT+0800');
 const formattedTime=time.toLocaleString('zh-TW',{
 timeZone: 'Asia/Taipei',
@@ -297,7 +304,7 @@ row.innerHTML=`
 `;
 recordTable.appendChild(row);
 });
-return records;
+return records; // 維持返回所有篩選後的紀錄，確保匯出功能正常
 }
 
 async function exportToCSV(){
