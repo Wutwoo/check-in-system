@@ -68,6 +68,10 @@ color: green;
 margin-top: 10px;
 display: none;
 }
+#filterControls{
+text-align: left;
+margin-bottom: 15px;
+}
 </style>
 </head>
 <body>
@@ -108,6 +112,10 @@ display: none;
 
 <div id="records">
 <h2>打卡記錄</h2>
+<div id="filterControls">
+<label for="filterGroup">按組別篩選：</label>
+<select id="filterGroup" onchange="loadRecords()"></select>
+</div>
 <button id="exportBtn" onclick="exportToCSV()">匯出報表 (CSV)</button>
 <table>
 <thead>
@@ -141,6 +149,18 @@ const option=document.createElement('option');
 option.value=name;
 option.textContent=name;
 nameSelect.appendChild(option);
+});
+}
+
+// 新增：填充篩選器下拉選單
+function populateFilter(){
+const filterSelect = document.getElementById('filterGroup');
+filterSelect.innerHTML = '<option value="全部">全部</option>'; // 新增一個"全部"選項
+Object.keys(employees).forEach(group => {
+const option = document.createElement('option');
+option.value = group;
+option.textContent = group;
+filterSelect.appendChild(option);
 });
 }
 
@@ -222,16 +242,37 @@ console.error('打卡失敗:',error);
 }
 }
 
-async function loadRecords(){
-try{
-const response=await fetch(`${DATABASE_URL}?action=get`);
-if(!response.ok){
+// 獲取並篩選資料的核心函數
+async function fetchAndFilterRecords() {
+try {
+const response = await fetch(`${DATABASE_URL}?action=get`);
+if (!response.ok) {
 throw new Error(`無法載入記錄: HTTP ${response.status}`);
 }
-const records=await response.json();
-if(records.error){
+const records = await response.json();
+if (records.error) {
 throw new Error(records.error);
 }
+
+// 篩選邏輯
+const selectedGroup = document.getElementById('filterGroup').value;
+const filteredRecords = selectedGroup === '全部'
+? records
+: records.filter(record => record.shift === selectedGroup);
+
+return filteredRecords;
+} catch (error) {
+showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
+console.error('載入記錄失敗:', error);
+return []; // 發生錯誤時返回空陣列
+}
+}
+
+
+// 更新 loadRecords 來顯示處理過的資料
+async function loadRecords() {
+const records = await fetchAndFilterRecords(); // 獲取已篩選的資料
+
 records.sort((a,b)=>{
 const timeA=new Date(a.time+' GMT+0800');
 const timeB=new Date(b.time+' GMT+0800');
@@ -257,15 +298,10 @@ row.innerHTML=`
 recordTable.appendChild(row);
 });
 return records;
-}catch(error){
-showMessage('errorMsg',`載入記錄失敗: ${error.message}`,true);
-console.error('載入記錄失敗:',error);
-return[];
-}
 }
 
 async function exportToCSV(){
-const records=await loadRecords();
+const records=await loadRecords(); // loadRecords 現在返回的是已篩選的記錄
 if(records.length===0){
 showMessage('errorMsg','無記錄可匯出',true);
 return;
@@ -310,7 +346,9 @@ loadRecords();
 },30000);
 }
 
+// 頁面初始化
 updateNames();
+populateFilter(); // 呼叫新函式來填充篩選器
 setInterval(updateClock,1000);
 updateClock();
 loadRecords();
