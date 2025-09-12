@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>潤森鑫打卡系統 (v4.0 最終版)</title>
+<title>潤森鑫打卡系統 (v5.0 終極版)</title>
 <style>
 /* ... CSS 樣式保持不變 ... */
 body{font-family: Arial, sans-serif;max-width: 800px;margin: 0 auto;padding: 20px;text-align: center;}
@@ -50,48 +50,51 @@ async function getIPAddress(){const ipAPIs=['https://api.ipify.org?format=json',
 async function checkIn(){const group=document.getElementById('group').value;const name=document.getElementById('name').value;const type=document.getElementById('type').value;if(!group||!name||!type){showMessage('errorMsg','請選擇組別、姓名和打卡項目',true);return;}if(!confirm(`確定要為 ${name} 打卡 ${type}？`)){return;}const timeString=document.getElementById('clock').textContent.replace('當前時間: ','');const ip=await getIPAddress();if(ip==='N/A'){showMessage('errorMsg','無法獲取 IP 地址，打卡失敗',true);return;}const record={shift:group,name:name,type:type,time:timeString,ip:ip};try{await fetch(DATABASE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});await loadRecords();showMessage('successMsg','打卡成功，已儲存到資料庫');}catch(error){showMessage('errorMsg',`打卡失敗: ${error.message}`,true);console.error('打卡失敗:',error);}}
 
 
-// *** 核心修改處：將 action=get 改為路徑參數 ***
+// *** 核心修改處：不再傳遞任何參數，而是定義一個固定的 callback 函式 ***
+let recordsPromiseResolver = null;
+function handleData(data) {
+  if (recordsPromiseResolver) {
+    recordsPromiseResolver(data);
+    recordsPromiseResolver = null;
+  }
+}
+
 async function fetchAndFilterRecords(){
   return new Promise((resolve,reject)=>{
-    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-    window[callbackName] = function(data){
-      delete window[callbackName];
-      document.body.removeChild(script);
-      if (data.error){
-        console.error("後端返回錯誤:", data.error);
-        throw new Error(data.error);
-      }
-      const selectedGroup=document.getElementById('filterGroup').value;
-      const groupFilteredRecords=selectedGroup==='全部'?data:data.filter(record=>record.shift===selectedGroup);
-      const now=new Date();
-      const twentyFourHoursAgo=new Date(now.getTime()-(24*60*60*1000));
-      const finalRecords=groupFilteredRecords.filter(record=>{
-        const recordTime=new Date(record.time+' GMT+0800');
-        return recordTime>=twentyFourHoursAgo;
-      });
-      resolve(finalRecords);
+    recordsPromiseResolver = (data) => {
+        if (data.error){
+            console.error("後端返回錯誤:", data.error);
+            reject(new Error(data.error));
+            return;
+        }
+        const selectedGroup=document.getElementById('filterGroup').value;
+        const groupFilteredRecords=selectedGroup==='全部'?data:data.filter(record=>record.shift===selectedGroup);
+        const now=new Date();
+        const twentyFourHoursAgo=new Date(now.getTime()-(24*60*60*1000));
+        const finalRecords=groupFilteredRecords.filter(record=>{
+            const recordTime=new Date(record.time+' GMT+0800');
+            return recordTime>=twentyFourHoursAgo;
+        });
+        resolve(finalRecords);
     };
 
     const script = document.createElement('script');
     
-    // 將 /exec 後面直接加上 /get，? 後面只留 callback
-    const finalUrl = `${DATABASE_URL}/get?callback=${callbackName}`;
-    console.log("正在請求的 URL (路徑參數版):", finalUrl); 
+    // URL 中不再包含任何參數
+    const finalUrl = DATABASE_URL;
+    console.log("正在請求的 URL (無參數版):", finalUrl); 
     
     script.src = finalUrl;
     script.onerror = ()=>{
-      delete window[callbackName];
-      document.body.removeChild(script);
-      showMessage('errorMsg','載入記錄失敗: 無法連接到後端服務',true);
       reject(new Error('JSONP request failed'));
     };
     document.body.appendChild(script);
   });
 }
 
-// ... 其他函式保持不變 ...
+// ... 其他函式保持不變，並加入了更完善的錯誤處理 ...
 async function loadRecords(){try{const records=await fetchAndFilterRecords();records.sort((a,b)=>{const timeA=new Date(a.time+' GMT+0800');const timeB=new Date(b.time+' GMT+0800');return timeB-timeA;});const recordTable=document.getElementById('recordTable');recordTable.innerHTML='';records.forEach(record=>{const time=new Date(record.time+' GMT+0800');const formattedTime=time.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const row=document.createElement('tr');row.innerHTML=`<td>${record.name}</td><td>${record.shift}</td><td>${record.type}</td><td>${formattedTime}</td><td>${record.ip||'N/A'}</td>`;recordTable.appendChild(row);});return records;}catch(error){console.error("Load records failed:",error);showMessage('errorMsg',`載入記錄失敗: ${error.message}`,true);return[];}}
-async function exportToCSV(){const records=await loadRecords();if(records.length===0){showMessage('errorMsg','無記錄可匯出',true);return;}const headers=['姓名','組別','項目','時間','IP 地址'];const csvRows=[headers.join(',')];records.forEach(record=>{const time=new Date(record.time+' GMT+0800');const formattedTime=time.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const row=[`"${record.name}"`,`"${record.shift}"`,`"${record.type}"`,`"${formattedTime}"`,`"${record.ip||'N/A'}"`];csvRows.push(row.join(','));});const csvContent=csvRows.join('\n');const blob=new Blob([`\ufeff${csvContent}`],{type:'text/csv;charset=utf-8;'});const url=window.URL.createObjectURL(blob);const link=document.createElement('a');const dateString=new Date().toLocaleDateString('zh-TW',{timeZone:'Asia/Taipei'}).replace(/\//g,'-');link.href=url;link.download=`潤森鑫_打卡記錄_${dateString}.csv`;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(url);}
+async function exportToCSV(){const records=await loadRecords();if(records.length===0){showMessage('errorMsg','無記錄可匯出',true);return;}const headers=['姓名','組別','項目','時間','IP 地址'];const csvRows=[headers.join(',')];records.forEach(record=>{const time=new Date(record.time+' GMT+0-800');const formattedTime=time.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const row=[`"${record.name}"`,`"${record.shift}"`,`"${record.type}"`,`"${formattedTime}"`,`"${record.ip||'N/A'}"`];csvRows.push(row.join(','));});const csvContent=csvRows.join('\n');const blob=new Blob([`\ufeff${csvContent}`],{type:'text/csv;charset=utf-8;'});const url=window.URL.createObjectURL(blob);const link=document.createElement('a');const dateString=new Date().toLocaleDateString('zh-TW',{timeZone:'Asia/Taipei'}).replace(/\//g,'-');link.href=url;link.download=`潤森鑫_打卡記錄_${dateString}.csv`;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(url);}
 function startAutoRefresh(){setInterval(function(){if(document.visibilityState==='visible'){loadRecords();}},30000);}
 
 updateNames();populateFilter();setInterval(updateClock,1000);updateClock();loadRecords();startAutoRefresh();
