@@ -80,7 +80,6 @@ margin-bottom: 15px;
 <div id="errorMsg"></div>
 <div id="successMsg"></div>
 
-<!-- 打卡操作區 -->
 <label for="group">組別：</label>
 <select id="group" onchange="updateNames()" autocomplete="off">
 <option value="天狼組">天狼組</option>
@@ -111,9 +110,8 @@ margin-bottom: 15px;
 
 <button id="checkInBtn" onclick="checkIn()">打卡</button>
 
-<!-- 記錄顯示區 -->
 <div id="records">
-<h2>打卡記錄 (僅顯示過去 24 小時)</h2>
+<h2>打卡記錄</h2>
 <div id="filterControls">
 <label for="filterGroup">按組別篩選：</label>
 <select id="filterGroup" onchange="loadRecords()"></select>
@@ -134,11 +132,6 @@ margin-bottom: 15px;
 </div>
 
 <script>
-// =================================================================
-// 前端 JavaScript 腳本 (版本：CORB 修正版)
-// =================================================================
-
-// 員工資料設定
 const employees={
 天狼組: ['曹操 (組長)', '來財', '南風', '胖子', '大飛', '小柒', '馬超'],
 洋天組: ['杜月笙 (組長)', '江海', '馬斯克', '白馬'],
@@ -147,10 +140,6 @@ const employees={
 客服: ['星空', '森鋒']
 };
 
-// *** 請務必確認這裡是您最新部署的 Web App URL ***
-const DATABASE_URL='https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
-
-// 根據所選組別，更新姓名下拉選單
 function updateNames(){
 const group=document.getElementById('group').value;
 const nameSelect=document.getElementById('name');
@@ -163,10 +152,10 @@ nameSelect.appendChild(option);
 });
 }
 
-// 動態填充篩選器下拉選單
+// 新增：填充篩選器下拉選單
 function populateFilter(){
 const filterSelect = document.getElementById('filterGroup');
-filterSelect.innerHTML = '<option value="全部">全部</option>';
+filterSelect.innerHTML = '<option value="全部">全部</option>'; // 新增一個"全部"選項
 Object.keys(employees).forEach(group => {
 const option = document.createElement('option');
 option.value = group;
@@ -175,7 +164,6 @@ filterSelect.appendChild(option);
 });
 }
 
-// 更新頁面上的時鐘
 function updateClock(){
 const now=new Date();
 const timeString=now.toLocaleString('zh-TW',{
@@ -186,7 +174,8 @@ hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
 document.getElementById('clock').textContent=`當前時間: ${timeString}`;
 }
 
-// 顯示成功或錯誤訊息
+const DATABASE_URL='https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
+
 function showMessage(elementId,message,isError=false){
 const msgElement=document.getElementById(elementId);
 msgElement.textContent=message;
@@ -195,12 +184,15 @@ msgElement.style.color=isError?'red':'green';
 setTimeout(()=>{msgElement.style.display='none';},5000);
 }
 
-// 嘗試從多個 API 來源獲取使用者 IP 地址
 async function getIPAddress(){
-const ipAPIs=['https://api.ipify.org?format=json','https://ipapi.co/json/','https://ipinfo.io/json'];
+const ipAPIs=[
+'https://api.ipify.org?format=json',
+'https://ipapi.co/json/',
+'https://ipinfo.io/json'
+];
 for(const api of ipAPIs){
 try{
-const response=await fetch(api,{signal: AbortSignal.timeout(3000)});
+const response=await fetch(api,{timeout:5000});
 if(!response.ok)throw new Error(`HTTP ${response.status}`);
 const data=await response.json();
 return data.ip||data.query||'N/A';
@@ -212,7 +204,6 @@ showMessage('errorMsg','無法獲取 IP 地址，請檢查網路連線',true);
 return'N/A';
 }
 
-// 執行打卡操作 (寫入資料不受 CORB 影響)
 async function checkIn(){
 const group=document.getElementById('group').value;
 const name=document.getElementById('name').value;
@@ -221,20 +212,25 @@ if(!group||!name||!type){
 showMessage('errorMsg','請選擇組別、姓名和打卡項目',true);
 return;
 }
+
 if(!confirm(`確定要為 ${name} 打卡 ${type}？`)){
 return;
 }
-const timeString=document.getElementById('clock').textContent.replace('當前時間: ','');
+
+const timeString=document.getElementById('clock').textContent.split(': ')[1];
+
 const ip=await getIPAddress();
 if(ip==='N/A'){
 showMessage('errorMsg','無法獲取 IP 地址，打卡失敗',true);
 return;
 }
+
 const record={shift: group,name,type,time: timeString,ip};
+
 try{
-await fetch(DATABASE_URL,{
+const response=await fetch(DATABASE_URL,{
 method: 'POST',
-mode: 'no-cors', 
+mode: 'no-cors',
 headers:{'Content-Type': 'application/json'},
 body: JSON.stringify(record)
 });
@@ -246,61 +242,37 @@ console.error('打卡失敗:',error);
 }
 }
 
-// *** 核心修改處：使用 JSONP 方式獲取資料以繞過 CORB ***
+// 獲取並篩選資料的核心函數
 async function fetchAndFilterRecords() {
-  return new Promise((resolve, reject) => {
-    // 1. 定義一個獨一無二的 callback 函式名稱，避免衝突
-    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-
-    // 2. 將這個 callback 函式掛載到全域 window 物件上
-    window[callbackName] = function(data) {
-      // 成功接收到資料後，立即清理，避免記憶體洩漏
-      delete window[callbackName];
-      document.body.removeChild(script);
-      
-      // 3. 在這裡執行原本的篩選邏輯
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      const selectedGroup = document.getElementById('filterGroup').value;
-      const groupFilteredRecords = selectedGroup === '全部'
-        ? data
-        : data.filter(record => record.shift === selectedGroup);
-
-      const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-      const finalRecords = groupFilteredRecords.filter(record => {
-        const recordTime = new Date(record.time + ' GMT+0800');
-        return recordTime >= twentyFourHoursAgo;
-      });
-
-      // 4. 將處理好的資料透過 Promise resolve 出去
-      resolve(finalRecords);
-    };
-
-    // 5. 動態建立一個 <script> 標籤
-    const script = document.createElement('script');
-    // 將 action 和 callback 函式名稱作為參數加到 URL 中
-    script.src = `${DATABASE_URL}?action=get&callback=${callbackName}`;
-
-    // 處理載入錯誤的情況
-    script.onerror = () => {
-        delete window[callbackName];
-        document.body.removeChild(script);
-        showMessage('errorMsg', '載入記錄失敗: 無法連接到後端服務', true);
-        reject(new Error('JSONP request failed'));
-    };
-
-    // 6. 將 <script> 標籤插入到頁面中，瀏覽器會立即發出請求並執行回傳的 JavaScript
-    document.body.appendChild(script);
-  });
+try {
+const response = await fetch(`${DATABASE_URL}?action=get`);
+if (!response.ok) {
+throw new Error(`無法載入記錄: HTTP ${response.status}`);
+}
+const records = await response.json();
+if (records.error) {
+throw new Error(records.error);
 }
 
-// 載入並在表格中顯示打卡記錄
+// 篩選邏輯
+const selectedGroup = document.getElementById('filterGroup').value;
+const filteredRecords = selectedGroup === '全部'
+? records
+: records.filter(record => record.shift === selectedGroup);
+
+return filteredRecords;
+} catch (error) {
+showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
+console.error('載入記錄失敗:', error);
+return []; // 發生錯誤時返回空陣列
+}
+}
+
+
+// 更新 loadRecords 來顯示處理過的資料
 async function loadRecords() {
-try {
-const records = await fetchAndFilterRecords();
+const records = await fetchAndFilterRecords(); // 獲取已篩選的資料
+
 records.sort((a,b)=>{
 const timeA=new Date(a.time+' GMT+0800');
 const timeB=new Date(b.time+' GMT+0800');
@@ -326,20 +298,15 @@ row.innerHTML=`
 recordTable.appendChild(row);
 });
 return records;
-} catch (error) {
-    console.error("Load records failed:", error);
-    showMessage('errorMsg', `載入記錄失敗: ${error.message}`, true);
-    return [];
-}
 }
 
-// 將當前顯示的記錄匯出為 CSV 檔案
 async function exportToCSV(){
-const records=await loadRecords();
+const records=await loadRecords(); // loadRecords 現在返回的是已篩選的記錄
 if(records.length===0){
 showMessage('errorMsg','無記錄可匯出',true);
 return;
 }
+
 const headers=['姓名','組別','項目','時間','IP 地址'];
 const csvRows=[headers.join(',')];
 records.forEach(record=>{
@@ -349,23 +316,28 @@ timeZone: 'Asia/Taipei',
 year: 'numeric',month: '2-digit',day: '2-digit',
 hour: '2-digit',minute: '2-digit',second: '2-digit',hour12: false
 });
-const row=[`"${record.name}"`,`"${record.shift}"`,`"${record.type}"`,`"${formattedTime}"`,`"${record.ip||'N/A'}"`];
+const row=[
+`"${record.name}"`,
+`"${record.shift}"`,
+`"${record.type}"`,
+`"${formattedTime}"`,
+`"${record.ip||'N/A'}"`
+];
 csvRows.push(row.join(','));
 });
 const csvContent=csvRows.join('\n');
+
 const blob=new Blob([`\ufeff${csvContent}`],{type: 'text/csv;charset=utf-8;'});
 const url=window.URL.createObjectURL(blob);
 const link=document.createElement('a');
-const dateString = new Date().toLocaleDateString('zh-TW',{timeZone: 'Asia/Taipei'}).replace(/\//g,'-');
 link.href=url;
-link.download=`潤森鑫_打卡記錄_${dateString}.csv`;
+link.download=`潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW',{timeZone: 'Asia/Taipei'}).replace(/\//g,'-')}.csv`;
 document.body.appendChild(link);
 link.click();
 document.body.removeChild(link);
 window.URL.revokeObjectURL(url);
 }
 
-// 設定定時器，每 30 秒自動刷新一次打卡記錄
 function startAutoRefresh(){
 setInterval(function(){
 if(document.visibilityState==='visible'){
@@ -376,7 +348,7 @@ loadRecords();
 
 // 頁面初始化
 updateNames();
-populateFilter();
+populateFilter(); // 呼叫新函式來填充篩選器
 setInterval(updateClock,1000);
 updateClock();
 loadRecords();
