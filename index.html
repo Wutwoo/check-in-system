@@ -35,7 +35,11 @@ th{background-color: #f2f2f2;position: sticky;top: 0;}
 
 <script>
 const employees={天狼組:['曹操 (組長)','來財','南風','胖子','大飛','小柒','馬超'],洋天組:['杜月笙 (組長)','江海','馬斯克','白馬'],策天組:['五條悟 (組長)','夢子','安妮亞','鹿丸','傑諾','柳丁'],新增:['紅丸','冬瓜'],客服:['星空','森鋒']};
-// *** 請務必換成您最新部署的 Web App URL ***
+
+// =================================================================
+// *** ↓↓↓ 最關鍵的一步 ↓↓↓ ***
+// *** 請務必將下面的 URL 替換成您最新部署後的 Web App URL ***
+// =================================================================
 const DATABASE_URL='https://script.google.com/macros/s/AKfycbzDm81N276SYIzDkEJaFHydg72Kh1OMVShVAjWfLAsh-_Girx625VWNztALr1TDOWiL/exec';
 
 function updateNames(){const group=document.getElementById('group').value;const nameSelect=document.getElementById('name');nameSelect.innerHTML='';employees[group].forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;nameSelect.appendChild(option);});}
