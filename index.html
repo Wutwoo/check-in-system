@@ -145,56 +145,34 @@ th {
   <button id="exportBtn" onclick="showExportDialog()">匯出報表 (CSV)</button>
   <dialog id="exportDialog">
     <h3>匯出設定</h3>
-    <label><input type="checkbox" id="noCheckInReport" onchange="toggleReportOptions()"> 列出未打上班卡員工</label>
-    <label><input type="checkbox" id="lateReport" onchange="toggleReportOptions()"> 月度遲到報表</label>
-    <div id="noCheckInOptions" style="display: none;">
-      <label for="noCheckInDate">指定日期：</label>
-      <input type="date" id="noCheckInDate">
-      <label for="noCheckInGroup">組別：</label>
-      <select id="noCheckInGroup">
-        <option value="全部">全部</option>
-        <!-- 組別選項將動態填充 -->
-      </select>
-    </div>
-    <div id="lateReportOptions" style="display: none;">
-      <label for="lateReportMonth">月份：</label>
-      <input type="month" id="lateReportMonth">
-      <label for="lateReportGroup">組別：</label>
-      <select id="lateReportGroup">
-        <option value="全部">全部</option>
-        <!-- 組別選項將動態填充 -->
-      </select>
-    </div>
-    <div id="standardOptions">
-      <label for="exportStartDate">開始日期時間：</label>
-      <input type="datetime-local" id="exportStartDate" step="60">
-      <label for="exportEndDate">結束日期時間：</label>
-      <input type="datetime-local" id="exportEndDate" step="60">
-      <label for="exportGroup">組別：</label>
-      <select id="exportGroup">
-        <option value="全部">全部</option>
-        <!-- 組別選項將動態填充 -->
-      </select>
-      <label for="exportName">姓名：</label>
-      <select id="exportName">
-        <option value="全部">全部</option>
-        <!-- 姓名選項將根據組別動態填充 -->
-      </select>
-      <label>打卡項目（可多選）：</label>
-      <div id="exportTypesContainer">
-        <label><input type="checkbox" name="exportTypes" value="上班" checked> 上班</label>
-        <label><input type="checkbox" name="exportTypes" value="下班" checked> 下班</label>
-        <label><input type="checkbox" name="exportTypes" value="吃飯"> 吃飯</label>
-        <label><input type="checkbox" name="exportTypes" value="結束吃飯"> 結束吃飯</label>
-        <label><input type="checkbox" name="exportTypes" value="休息"> 休息</label>
-        <label><input type="checkbox" name="exportTypes" value="結束休息"> 結束休息</label>
-        <label><input type="checkbox" name="exportTypes" value="廁所"> 廁所</label>
-        <label><input type="checkbox" name="exportTypes" value="抽菸"> 抽菸</label>
-        <label><input type="checkbox" name="exportTypes" value="返回座位"> 返回座位</label>
-        <label><input type="checkbox" name="exportTypes" value="事假"> 事假</label>
-        <label><input type="checkbox" name="exportTypes" value="病假"> 病假</label>
-        <label><input type="checkbox" name="exportTypes" value="銷假上班"> 銷假上班</label>
-      </div>
+    <label for="exportStartDate">開始日期時間：</label>
+    <input type="datetime-local" id="exportStartDate" step="60">
+    <label for="exportEndDate">結束日期時間：</label>
+    <input type="datetime-local" id="exportEndDate" step="60">
+    <label for="exportGroup">組別：</label>
+    <select id="exportGroup">
+      <option value="全部">全部</option>
+      <!-- 組別選項將動態填充 -->
+    </select>
+    <label for="exportName">姓名：</label>
+    <select id="exportName">
+      <option value="全部">全部</option>
+      <!-- 姓名選項將根據組別動態填充 -->
+    </select>
+    <label>打卡項目（可多選）：</label>
+    <div id="exportTypesContainer">
+      <label><input type="checkbox" name="exportTypes" value="上班" checked> 上班</label>
+      <label><input type="checkbox" name="exportTypes" value="下班" checked> 下班</label>
+      <label><input type="checkbox" name="exportTypes" value="吃飯"> 吃飯</label>
+      <label><input type="checkbox" name="exportTypes" value="結束吃飯"> 結束吃飯</label>
+      <label><input type="checkbox" name="exportTypes" value="休息"> 休息</label>
+      <label><input type="checkbox" name="exportTypes" value="結束休息"> 結束休息</label>
+      <label><input type="checkbox" name="exportTypes" value="廁所"> 廁所</label>
+      <label><input type="checkbox" name="exportTypes" value="抽菸"> 抽菸</label>
+      <label><input type="checkbox" name="exportTypes" value="返回座位"> 返回座位</label>
+      <label><input type="checkbox" name="exportTypes" value="事假"> 事假</label>
+      <label><input type="checkbox" name="exportTypes" value="病假"> 病假</label>
+      <label><input type="checkbox" name="exportTypes" value="銷假上班"> 銷假上班</label>
     </div>
     <button onclick="exportToCSV()">確認匯出</button>
     <button onclick="document.getElementById('exportDialog').close()">取消</button>
@@ -222,28 +200,6 @@ const employees = {
   客服: ['星空', '森鋒']
 };
 
-// 模擬班次表（實際應從後端或試算表獲取）
-const shiftSchedule = {
-  '2025/09/01': {
-    '星空': { group: '客服', shift: '客服早班' },
-    '森鋒': { group: '客服', shift: '客服晚班' },
-    '曹操 (組長)': { group: '天狼組', shift: '早班' }
-  },
-  '2025/09/02': {
-    '星空': { group: '客服', shift: '客服晚班' }, // 調休
-    '森鋒': { group: '客服', shift: '客服早班' }, // 調休
-    '曹操 (組長)': { group: '天狼組', shift: '早班' }
-  }
-  // 其他日期的班次表需動態填充
-};
-
-const shiftThresholds = {
-  '早班': '08:00:00',
-  '晚班': '22:30:00',
-  '客服早班': '11:00:00',
-  '客服晚班': '23:00:00'
-};
-
 function updateNames() {
   const group = document.getElementById('group').value;
   const nameSelect = document.getElementById('name');
@@ -269,18 +225,12 @@ function populateFilter() {
 
 function populateExportOptions() {
   const exportGroupSelect = document.getElementById('exportGroup');
-  const noCheckInGroupSelect = document.getElementById('noCheckInGroup');
-  const lateReportGroupSelect = document.getElementById('lateReportGroup');
   exportGroupSelect.innerHTML = '<option value="全部">全部</option>';
-  noCheckInGroupSelect.innerHTML = '<option value="全部">全部</option>';
-  lateReportGroupSelect.innerHTML = '<option value="全部">全部</option>';
   Object.keys(employees).forEach(group => {
     const option = document.createElement('option');
     option.value = group;
     option.textContent = group;
     exportGroupSelect.appendChild(option);
-    noCheckInGroupSelect.appendChild(option.cloneNode(true));
-    lateReportGroupSelect.appendChild(option.cloneNode(true));
   });
 
   exportGroupSelect.onchange = function() {
@@ -298,20 +248,7 @@ function populateExportOptions() {
   };
 }
 
-function toggleReportOptions() {
-  const noCheckInReport = document.getElementById('noCheckInReport').checked;
-  const lateReport = document.getElementById('lateReport').checked;
-  document.getElementById('noCheckInOptions').style.display = noCheckInReport ? 'block' : 'none';
-  document.getElementById('lateReportOptions').style.display = lateReport ? 'block' : 'none';
-  document.getElementById('standardOptions').style.display = (!noCheckInReport && !lateReport) ? 'block' : 'none';
-  if (noCheckInReport) document.getElementById('lateReport').checked = false;
-  if (lateReport) document.getElementById('noCheckInReport').checked = false;
-}
-
 function showExportDialog() {
-  document.getElementById('noCheckInReport').checked = false;
-  document.getElementById('lateReport').checked = false;
-  toggleReportOptions();
   document.getElementById('exportDialog').showModal();
 }
 
@@ -459,227 +396,72 @@ async function exportToCSV() {
     return;
   }
 
-  const noCheckInReport = document.getElementById('noCheckInReport').checked;
-  const lateReport = document.getElementById('lateReport').checked;
+  const startDateStr = document.getElementById('exportStartDate').value;
+  const endDateStr = document.getElementById('exportEndDate').value;
+  const exportGroup = document.getElementById('exportGroup').value;
+  const exportName = document.getElementById('exportName').value;
+  const exportTypes = Array.from(document.querySelectorAll('input[name="exportTypes"]:checked')).map(input => input.value);
 
-  if (noCheckInReport) {
-    const noCheckInDate = document.getElementById('noCheckInDate').value;
-    const noCheckInGroup = document.getElementById('noCheckInGroup').value;
+  let filteredRecords = records;
 
-    if (!noCheckInDate || !noCheckInGroup) {
-      showMessage('errorMsg', '請選擇指定日期和組別', true);
-      document.getElementById('exportDialog').close();
-      return;
-    }
-
-    const startDate = new Date(`${noCheckInDate}T00:00:00+08:00`);
-    const endDate = new Date(`${noCheckInDate}T08:00:00+08:00`);
-
-    const checkInRecords = records.filter(record => {
+  if (startDateStr || endDateStr) {
+    const startDate = startDateStr ? new Date(startDateStr + ':00') : null;
+    const endDate = endDateStr ? new Date(endDateStr + ':59') : null;
+    filteredRecords = filteredRecords.filter(record => {
       const recordTime = new Date(record.time + ' GMT+0800');
-      return record.type === '上班' &&
-             recordTime >= startDate &&
-             recordTime <= endDate &&
-             (noCheckInGroup === '全部' || record.shift === noCheckInGroup);
+      if (startDate && recordTime < startDate) return false;
+      if (endDate && recordTime > endDate) return false;
+      return true;
     });
-
-    const groupEmployees = noCheckInGroup === '全部'
-      ? Object.values(employees).flat()
-      : employees[noCheckInGroup] || [];
-
-    const noCheckInEmployees = groupEmployees.filter(name => 
-      !checkInRecords.some(record => record.name === name)
-    );
-
-    if (noCheckInEmployees.length === 0) {
-      showMessage('errorMsg', '所有員工均已打上班卡', true);
-      document.getElementById('exportDialog').close();
-      return;
-    }
-
-    const headers = ['姓名', '組別', '狀態'];
-    const csvRows = [headers.join(',')];
-    noCheckInEmployees.forEach(name => {
-      const group = Object.keys(employees).find(g => employees[g].includes(name)) || '未知';
-      const row = [
-        `"${name}"`,
-        `"${group}"`,
-        `"未打上班卡"`
-      ];
-      csvRows.push(row.join(','));
-    });
-    const csvContent = csvRows.join('\n');
-
-    const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `潤森鑫_未打上班卡_${noCheckInDate.replace(/-/g, '-')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } else if (lateReport) {
-    const lateReportMonth = document.getElementById('lateReportMonth').value;
-    const lateReportGroup = document.getElementById('lateReportGroup').value;
-
-    if (!lateReportMonth || !lateReportGroup) {
-      showMessage('errorMsg', '請選擇月份和組別', true);
-      document.getElementById('exportDialog').close();
-      return;
-    }
-
-    const [year, month] = lateReportMonth.split('-');
-    const startDate = new Date(`${year}/${month}/01T00:00:00+08:00`);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 1);
-    endDate.setDate(0); // 最後一天
-
-    const groupEmployees = lateReportGroup === '全部'
-      ? Object.values(employees).flat()
-      : employees[lateReportGroup] || [];
-
-    const lateRecords = [];
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/');
-      groupEmployees.forEach(name => {
-        const group = Object.keys(employees).find(g => employees[g].includes(name)) || '未知';
-        const shiftInfo = shiftSchedule[dateStr.replace(/\//g, '/')]?.[name];
-        if (!shiftInfo || shiftInfo.shift === '休假') return;
-
-        const shift = shiftInfo.shift;
-        const thresholdTime = shiftThresholds[shift];
-        if (!thresholdTime) return;
-
-        const threshold = new Date(`${dateStr} ${thresholdTime}+08:00`);
-        const checkInRecord = records.find(record => {
-          const recordTime = new Date(record.time + ' GMT+0800');
-          return record.name === name &&
-                 record.type === '上班' &&
-                 recordTime.toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) === dateStr &&
-                 recordTime <= new Date(`${dateStr} 23:59:59+08:00`);
-        });
-
-        if (!checkInRecord) {
-          lateRecords.push({
-            name,
-            group,
-            date: dateStr,
-            shift,
-            status: '未打卡',
-            lateTime: ''
-          });
-        } else if (new Date(checkInRecord.time + ' GMT+0800') > threshold) {
-          lateRecords.push({
-            name,
-            group,
-            date: dateStr,
-            shift,
-            status: '遲到',
-            lateTime: checkInRecord.time
-          });
-        }
-      });
-    }
-
-    if (lateRecords.length === 0) {
-      showMessage('errorMsg', '無遲到或未打卡記錄', true);
-      document.getElementById('exportDialog').close();
-      return;
-    }
-
-    const headers = ['姓名', '組別', '日期', '班次', '狀態', '遲到時間'];
-    const csvRows = [headers.join(',')];
-    lateRecords.forEach(record => {
-      const row = [
-        `"${record.name}"`,
-        `"${record.group}"`,
-        `"${record.date}"`,
-        `"${record.shift}"`,
-        `"${record.status}"`,
-        `"${record.lateTime || ''}"`
-      ];
-      csvRows.push(row.join(','));
-    });
-    const csvContent = csvRows.join('\n');
-
-    const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `潤森鑫_遲到報表_${lateReportMonth.replace(/-/g, '-')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } else {
-    const startDateStr = document.getElementById('exportStartDate').value;
-    const endDateStr = document.getElementById('exportEndDate').value;
-    const exportGroup = document.getElementById('exportGroup').value;
-    const exportName = document.getElementById('exportName').value;
-    const exportTypes = Array.from(document.querySelectorAll('input[name="exportTypes"]:checked')).map(input => input.value);
-
-    let filteredRecords = records;
-
-    if (startDateStr || endDateStr) {
-      const startDate = startDateStr ? new Date(startDateStr + ':00') : null;
-      const endDate = endDateStr ? new Date(endDateStr + ':59') : null;
-      filteredRecords = filteredRecords.filter(record => {
-        const recordTime = new Date(record.time + ' GMT+0800');
-        if (startDate && recordTime < startDate) return false;
-        if (endDate && recordTime > endDate) return false;
-        return true;
-      });
-    }
-
-    if (exportGroup !== '全部') {
-      filteredRecords = filteredRecords.filter(record => record.shift === exportGroup);
-    }
-
-    if (exportName !== '全部') {
-      filteredRecords = filteredRecords.filter(record => record.name === exportName);
-    }
-
-    if (exportTypes.length > 0) {
-      filteredRecords = filteredRecords.filter(record => exportTypes.includes(record.type));
-    }
-
-    if (filteredRecords.length === 0) {
-      showMessage('errorMsg', '無記錄可匯出', true);
-      document.getElementById('exportDialog').close();
-      return;
-    }
-
-    const headers = ['姓名', '組別', '項目', '時間', 'IP 地址'];
-    const csvRows = [headers.join(',')];
-    filteredRecords.forEach(record => {
-      const time = new Date(record.time + ' GMT+0800');
-      const formattedTime = time.toLocaleString('zh-TW', {
-        timeZone: 'Asia/Taipei',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-      });
-      const row = [
-        `"${record.name}"`,
-        `"${record.shift}"`,
-        `"${record.type}"`,
-        `"${formattedTime}"`,
-        `"${record.ip || 'N/A'}"`
-      ];
-      csvRows.push(row.join(','));
-    });
-    const csvContent = csvRows.join('\n');
-
-    const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }).replace(/\//g, '-')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
   }
+
+  if (exportGroup !== '全部') {
+    filteredRecords = filteredRecords.filter(record => record.shift === exportGroup);
+  }
+
+  if (exportName !== '全部') {
+    filteredRecords = filteredRecords.filter(record => record.name === exportName);
+  }
+
+  if (exportTypes.length > 0) {
+    filteredRecords = filteredRecords.filter(record => exportTypes.includes(record.type));
+  }
+
+  if (filteredRecords.length === 0) {
+    showMessage('errorMsg', '無記錄可匯出', true);
+    document.getElementById('exportDialog').close();
+    return;
+  }
+
+  const headers = ['姓名', '組別', '項目', '時間', 'IP 地址'];
+  const csvRows = [headers.join(',')];
+  filteredRecords.forEach(record => {
+    const time = new Date(record.time + ' GMT+0800');
+    const formattedTime = time.toLocaleString('zh-TW', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    const row = [
+      `"${record.name}"`,
+      `"${record.shift}"`,
+      `"${record.type}"`,
+      `"${formattedTime}"`,
+      `"${record.ip || 'N/A'}"`
+    ];
+    csvRows.push(row.join(','));
+  });
+  const csvContent = csvRows.join('\n');
+
+  const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `潤森鑫_打卡記錄_${new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }).replace(/\//g, '-')}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 
   document.getElementById('exportDialog').close();
 }
