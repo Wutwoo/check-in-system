@@ -87,17 +87,6 @@ th {
 #exportDialog button {
   margin: 10px;
 }
-#exportTypesContainer {
-  max-height: 150px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  padding: 10px;
-}
-#exportTypesContainer label {
-  display: flex;
-  align-items: center;
-  margin: 5px 0;
-}
 </style>
 </head>
 <body>
@@ -160,20 +149,20 @@ th {
       <!-- 姓名選項將根據組別動態填充 -->
     </select>
     <label>打卡項目（可多選）：</label>
-    <div id="exportTypesContainer">
-      <label><input type="checkbox" name="exportTypes" value="上班" checked> 上班</label>
-      <label><input type="checkbox" name="exportTypes" value="下班" checked> 下班</label>
-      <label><input type="checkbox" name="exportTypes" value="吃飯"> 吃飯</label>
-      <label><input type="checkbox" name="exportTypes" value="結束吃飯"> 結束吃飯</label>
-      <label><input type="checkbox" name="exportTypes" value="休息"> 休息</label>
-      <label><input type="checkbox" name="exportTypes" value="結束休息"> 結束休息</label>
-      <label><input type="checkbox" name="exportTypes" value="廁所"> 廁所</label>
-      <label><input type="checkbox" name="exportTypes" value="抽菸"> 抽菸</label>
-      <label><input type="checkbox" name="exportTypes" value="返回座位"> 返回座位</label>
-      <label><input type="checkbox" name="exportTypes" value="事假"> 事假</label>
-      <label><input type="checkbox" name="exportTypes" value="病假"> 病假</label>
-      <label><input type="checkbox" name="exportTypes" value="銷假上班"> 銷假上班</label>
-    </div>
+    <select id="exportTypes" multiple>
+      <option value="上班" selected>上班</option>
+      <option value="下班" selected>下班</option>
+      <option value="吃飯">吃飯</option>
+      <option value="結束吃飯">結束吃飯</option>
+      <option value="休息">休息</option>
+      <option value="結束休息">結束休息</option>
+      <option value="廁所">廁所</option>
+      <option value="抽菸">抽菸</option>
+      <option value="返回座位">返回座位</option>
+      <option value="事假">事假</option>
+      <option value="病假">病假</option>
+      <option value="銷假上班">銷假上班</option>
+    </select>
     <button onclick="exportToCSV()">確認匯出</button>
     <button onclick="document.getElementById('exportDialog').close()">取消</button>
   </dialog>
@@ -400,7 +389,8 @@ async function exportToCSV() {
   const endDateStr = document.getElementById('exportEndDate').value;
   const exportGroup = document.getElementById('exportGroup').value;
   const exportName = document.getElementById('exportName').value;
-  const exportTypes = Array.from(document.querySelectorAll('input[name="exportTypes"]:checked')).map(input => input.value);
+  const exportTypesSelect = document.getElementById('exportTypes');
+  const exportTypes = Array.from(exportTypesSelect.selectedOptions).map(option => option.value);
 
   let filteredRecords = records;
 
